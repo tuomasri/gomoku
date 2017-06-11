@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Gomoku\Utils\GameHandler;
-use Doctrine\ORM\EntityManager;
 use Illuminate\Http\Response;
 
 class GameController extends Controller
@@ -14,19 +13,12 @@ class GameController extends Controller
     private $gameHandler;
 
     /**
-     * @var EntityManager
-     */
-    private $entityManager;
-
-    /**
      * GameController constructor.
      * @param GameHandler $gameHandler
-     * @param EntityManager $entityManager
      */
-    public function __construct(GameHandler $gameHandler, EntityManager $entityManager)
+    public function __construct(GameHandler $gameHandler)
     {
         $this->gameHandler = $gameHandler;
-        $this->entityManager = $entityManager;
     }
 
     /**
