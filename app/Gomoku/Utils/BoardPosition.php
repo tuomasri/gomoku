@@ -145,10 +145,10 @@ class BoardPosition
     private static function south(GameMove $gameMove, $offset)
     {
         return (
-        new self(
-            $gameMove->getX(),
-            $gameMove->getY() + $offset
-        )
+            new self(
+                $gameMove->getX(),
+                $gameMove->getY() + $offset
+            )
         )->returnInstanceIfWithinGameBoard();
     }
 
@@ -160,10 +160,10 @@ class BoardPosition
     private static function west(GameMove $gameMove, $offset)
     {
         return (
-        new self(
-            $gameMove->getX() - $offset,
-            $gameMove->getY()
-        )
+            new self(
+                $gameMove->getX() - $offset,
+                $gameMove->getY()
+            )
         )->returnInstanceIfWithinGameBoard();
     }
 
@@ -175,10 +175,10 @@ class BoardPosition
     private static function east(GameMove $gameMove, $offset)
     {
         return (
-        new self(
-            $gameMove->getX() + $offset,
-            $gameMove->getY()
-        )
+            new self(
+                $gameMove->getX() + $offset,
+                $gameMove->getY()
+            )
         )->returnInstanceIfWithinGameBoard();
     }
 
