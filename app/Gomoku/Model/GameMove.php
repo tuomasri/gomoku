@@ -10,7 +10,6 @@ namespace App\Gomoku\Model;
 
 use Illuminate\Support\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Console\Exception\LogicException;
 
 /**
  * @ORM\Entity

@@ -11,7 +11,6 @@ namespace App\Gomoku\Model;
 use App\Gomoku\Utils\BoardPosition;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
-use Illuminate\Support\Collection as IlluminateCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -150,14 +149,14 @@ class Game implements \JsonSerializable
      */
     public function getPlayerById($playerId)
     {
-        return IlluminateCollection::make($this->players)
+        return Collection::make($this->players)
             ->filter(
                 function (Player $player) use ($playerId) {
                     return $player->hasId($playerId);
                 }
             )
             ->tap(
-                function (IlluminateCollection $playerCollection) use ($playerId) {
+                function (Collection $playerCollection) use ($playerId) {
                     if ($playerCollection->isEmpty()) {
                         throw new \RuntimeException(
                             __CLASS__ . ": player #{$playerId} was not found."
@@ -322,8 +321,8 @@ class Game implements \JsonSerializable
         return [
             'id'      => $this->id,
             'state'   => $this->state,
-            'players' => IlluminateCollection::make($this->players)->map->jsonSerialize()->all(),
-            'moves'   => IlluminateCollection::make($this->moves)->map->jsonSerialize()->all(),
+            'players' => Collection::make($this->players)->map->jsonSerialize()->all(),
+            'moves'   => Collection::make($this->moves)->map->jsonSerialize()->all(),
             'winner'  => $this->winner ? $this->winner->jsonSerialize() : null,
         ];
     }
@@ -333,7 +332,7 @@ class Game implements \JsonSerializable
      */
     private function resolveNeighbours(GameMove $latestGameMove)
     {
-        IlluminateCollection::make(GameMove::DIRECTIONS)
+        Collection::make(GameMove::DIRECTIONS)
             /*
              * Liikutaan tehdystä siirrosta 1 askel jokaiseen ilmansuuntaan ja katsotaan onko
              * solussa saman pelaajan tekemä siirto. Jos on, niin palautetaan ko. siirto
@@ -394,7 +393,7 @@ class Game implements \JsonSerializable
      */
     private function resolveWinner(GameMove $newestGameMove)
     {
-        return IlluminateCollection::make(GameMove::DIRECTIONS)
+        return Collection::make(GameMove::DIRECTIONS)
             ->reduce(
                 function (Player $winner = null, $direction) use ($newestGameMove) {
                     // Peli on jo päättynyt joten ei tarkistella sen pitemmälle
@@ -422,14 +421,14 @@ class Game implements \JsonSerializable
         // Key-value-taulu [siirron id => siirto]
         $lookup = $this->mapGameMovesById();
 
-        /** @var IlluminateCollection $neighbours */
+        /** @var Collection $neighbours */
         $neighbours =
-            IlluminateCollection::make([
+            Collection::make([
                 $direction,
                 BoardPosition::getOppositeDirection($direction)
             ])
             ->reduce(
-                function (IlluminateCollection $winningNeighbours, $direction) use ($lookup, $newestGameMove) {
+                function (Collection $winningNeighbours, $direction) use ($lookup, $newestGameMove) {
                     if ($winningNeighbours->count() === self::WINNING_NUM_OF_MOVES - 1) {
                         return $winningNeighbours;
                     }
@@ -533,11 +532,11 @@ class Game implements \JsonSerializable
     }
 
     /**
-     * @return IlluminateCollection
+     * @return Collection
      */
     private function mapGameMovesByCoordinates()
     {
-        return IlluminateCollection::make($this->moves->toArray())
+        return Collection::make($this->moves->toArray())
             ->mapWithKeys(
                 function (GameMove $gameMove) {
                     return [$gameMove->getRepresentation() => $gameMove];
@@ -546,11 +545,11 @@ class Game implements \JsonSerializable
     }
 
     /**
-     * @return IlluminateCollection
+     * @return Collection
      */
     private function mapGameMovesById()
     {
-        return IlluminateCollection::make($this->moves->toArray())
+        return Collection::make($this->moves->toArray())
             ->mapWithKeys(
                 function (GameMove $gameMove) {
                     return [$gameMove->getId() => $gameMove];

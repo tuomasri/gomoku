@@ -10,7 +10,6 @@ namespace App\Gomoku\Utils;
 
 use App\Gomoku\Model\Game;
 use App\Gomoku\Model\GameMove;
-use App\Gomoku\Model\Player;
 use App\Gomoku\Repository\GameRepository;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\NoResultException;
