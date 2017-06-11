@@ -33,7 +33,7 @@ class GameMove implements \JsonSerializable
     const DIRECTION_NORTHWEST = 'NORTHWEST';
 
     /**
-     * @var int[]
+     * @var string[]
      */
     const DIRECTIONS = [
         self::DIRECTION_NORTH,
@@ -171,7 +171,7 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return int|null
      */
     public function getId()
     {
@@ -179,7 +179,7 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return int
      */
     public function getX()
     {
@@ -187,7 +187,7 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return int
      */
     public function getY()
     {
@@ -205,7 +205,7 @@ class GameMove implements \JsonSerializable
     /**
      * Palauttaa naapurisiirron ID:n tietystä suunnasta tai NULL jos naapuria ei ole
      *
-     * @param int $direction
+     * @param string $direction
      * @return int|null
      */
     public function getNeighbourMoveIdInDirection($direction)
@@ -225,7 +225,7 @@ class GameMove implements \JsonSerializable
      * Asettaa parametrina annetun siirron tämän siirron naapuriksi.
      *
      * @param GameMove $gameMove
-     * @param int $direction
+     * @param string $direction
      * @throw \LogicException
      */
     public function setNeighbourInDirection(GameMove $gameMove, $direction)

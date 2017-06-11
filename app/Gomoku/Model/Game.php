@@ -297,20 +297,9 @@ class Game implements \JsonSerializable
      * @param int $y
      * @return GameMove|null
      */
-    public function getGameMoveInPosition($x, $y)
+    public function getMoveInPosition($x, $y)
     {
         return $this->mapGameMovesByCoordinates()->get($x . $y);
-    }
-
-    /**
-     * Palauttaa TRUE jos siirron edustamalla kohdalla on jo siirto tässä pelissä
-     *
-     * @param GameMove $gameMove
-     * @return bool
-     */
-    public function containsMoveInPosition(GameMove $gameMove)
-    {
-        return $this->mapGameMovesByCoordinates()->has($gameMove->getRepresentation());
     }
 
     /**
@@ -341,7 +330,7 @@ class Game implements \JsonSerializable
                 function ($direction) use ($latestGameMove) {
                     $newPosition = BoardPosition::createFromDirection($latestGameMove, $direction, 1);
                     $neighbourMove = $newPosition
-                        ? $this->getGameMoveInPosition($newPosition->x, $newPosition->y)
+                        ? $this->getMoveInPosition($newPosition->x, $newPosition->y)
                         : null;
 
                     return $neighbourMove && $neighbourMove->isBySamePlayer($latestGameMove)
@@ -413,7 +402,7 @@ class Game implements \JsonSerializable
 
     /**
      * @param GameMove $newestGameMove
-     * @param int $direction
+     * @param string $direction
      * @return bool
      */
     private function flagWinningGameMoves(GameMove $newestGameMove, $direction)
@@ -502,7 +491,7 @@ class Game implements \JsonSerializable
 
         // Menossa oleva peli eli pitää varmistaa, että pelilauta on siirron kohdalla tyhjä & pelaaja on oikea
         return
-            ! $this->containsMoveInPosition($gameMove) &&
+            ! $this->getMoveInPosition($gameMove->getX(), $gameMove->getY()) &&
             ! $gameMove->getPlayer()->isSameColor($this->moves->last()->getPlayer());
     }
 

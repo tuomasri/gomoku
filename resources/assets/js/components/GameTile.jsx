@@ -87,7 +87,7 @@ class GameTile extends Component
             : () => { alert("Siirtoa ei voi enää perua");};
 
         return (
-            <a disabled={! this.props.isLatestMove}
+            <a disabled={! this.props.isLatestMove || this.props.move.isWinningMove}
                className={gametileClasses}
                onClick={() => clickHandler()}
             >

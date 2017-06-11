@@ -78,7 +78,7 @@ class Player implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return int|null
      */
     public function getId()
     {

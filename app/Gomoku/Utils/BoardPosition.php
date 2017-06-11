@@ -33,20 +33,6 @@ class BoardPosition
     /**
      * @var array
      */
-    const DIRECTION_FACTORY_METHODS = [
-        GameMove::DIRECTION_NORTH     => 'north',
-        GameMove::DIRECTION_NORTHEAST => 'northeast',
-        GameMove::DIRECTION_EAST      => 'east',
-        GameMove::DIRECTION_SOUTHEAST => 'southeast',
-        GameMove::DIRECTION_SOUTH     => 'south',
-        GameMove::DIRECTION_SOUTHWEST => 'southwest',
-        GameMove::DIRECTION_WEST      => 'west',
-        GameMove::DIRECTION_NORTHWEST => 'northwest',
-    ];
-
-    /**
-     * @var array
-     */
     const DIRECTION_OPPOSITES = [
         GameMove::DIRECTION_NORTH     => GameMove::DIRECTION_SOUTH,
         GameMove::DIRECTION_NORTHEAST => GameMove::DIRECTION_SOUTHWEST,
@@ -82,7 +68,7 @@ class BoardPosition
     }
 
     /**
-     * @param int $direction
+     * @param string $direction
      * @return int
      * @throws \InvalidArgumentException
      */
@@ -104,16 +90,17 @@ class BoardPosition
      * Jos $offset = 0 niin ei siirry $gameMoven koordinaateista mihinkään.
      *
      * @param GameMove $gameMove
-     * @param int $direction
+     * @param string $direction
      * @param int $offset
      * @return BoardPosition|null
      * @throws \InvalidArgumentException
      */
     public static function createFromDirection(GameMove $gameMove, $direction, $offset)
     {
-        $factoryMethod = self::DIRECTION_FACTORY_METHODS[$direction] ?? null;
+        $isValidFactoryMethod = isset(array_flip(GameMove::DIRECTIONS)[$direction]);
+        $factoryMethod = strtolower($direction);
 
-        if (! $factoryMethod) {
+        if (! $isValidFactoryMethod) {
             throw new \InvalidArgumentException(
                 __CLASS__ . ": factory method for direction {$direction} was not found"
             );

@@ -44515,7 +44515,7 @@ var GameTile = function (_Component) {
 
             return __WEBPACK_IMPORTED_MODULE_0_react___default.a.createElement(
                 'a',
-                { disabled: !this.props.isLatestMove,
+                { disabled: !this.props.isLatestMove || this.props.move.isWinningMove,
                     className: gametileClasses,
                     onClick: function onClick() {
                         return clickHandler();
