@@ -22,7 +22,7 @@ class Player implements \JsonSerializable
     const COLOR_WHITE = 2;
 
     /**
-     * @ORM\Id()
+     * @ORM\Id
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      *

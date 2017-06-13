@@ -85,7 +85,7 @@ class GameHandler
     }
 
     /**
-     * Siirron peruminen (onnistuu vain viimeisimmälle siirron 5 sekunnin sisälle sen tekoajasta)
+     * Siirron peruminen (onnistuu vain viimeisimmälle siirrolle 5 sekunnin sisällä sen tekoajasta)
      *
      * @param int $gameId
      * @param int $moveId

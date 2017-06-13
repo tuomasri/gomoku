@@ -60,7 +60,7 @@ class Game implements \JsonSerializable
     const MOVE_UNDO_THRESHOLD = 5;
 
     /**
-     * @ORM\Id()
+     * @ORM\Id
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      *
