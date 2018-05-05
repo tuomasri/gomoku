@@ -9,7 +9,6 @@
 namespace App\Gomoku\Utils;
 
 
-use App\Gomoku\Model\Game;
 use App\Gomoku\Model\GameMove;
 
 /**
@@ -31,21 +30,7 @@ class BoardPosition
     public $y;
 
     /**
-     * @var array
-     */
-    const DIRECTION_OPPOSITES = [
-        GameMove::DIRECTION_NORTH     => GameMove::DIRECTION_SOUTH,
-        GameMove::DIRECTION_NORTHEAST => GameMove::DIRECTION_SOUTHWEST,
-        GameMove::DIRECTION_EAST      => GameMove::DIRECTION_WEST,
-        GameMove::DIRECTION_SOUTHEAST => GameMove::DIRECTION_NORTHWEST,
-        GameMove::DIRECTION_SOUTH     => GameMove::DIRECTION_NORTH,
-        GameMove::DIRECTION_SOUTHWEST => GameMove::DIRECTION_NORTHEAST,
-        GameMove::DIRECTION_WEST      => GameMove::DIRECTION_EAST,
-        GameMove::DIRECTION_NORTHWEST => GameMove::DIRECTION_SOUTHEAST,
-    ];
-
-    /**
-     * Direction constructor.
+     * BoardPosition constructor.
      * @param int $x
      * @param int $y
      */
@@ -56,176 +41,14 @@ class BoardPosition
     }
 
     /**
-     * @return BoardPosition|null
-     */
-    public function returnInstanceIfWithinGameBoard()
-    {
-        $isWithinBounds =
-            $this->x >= 0 && $this->x < Game::BOARD_SIZE &&
-            $this->y >= 0 && $this->y < Game::BOARD_SIZE;
-
-        return $isWithinBounds ? $this : null;
-    }
-
-    /**
-     * @param string $direction
-     * @return int
-     * @throws \InvalidArgumentException
-     */
-    public static function getOppositeDirection($direction)
-    {
-        $opposite = self::DIRECTION_OPPOSITES[$direction] ?? null;
-
-        if (! $opposite) {
-            throw new \InvalidArgumentException(
-                __CLASS__ . ": unknown direction: {$direction}"
-            );
-        }
-
-        return $opposite;
-    }
-
-    /**
-     * Luo annetusta siirrosta ja suunnasta pelilaudan paikkaa mallintavan instanssin.
-     * Jos $offset = 0 niin ei siirry $gameMoven koordinaateista mihinkään.
-     *
      * @param GameMove $gameMove
-     * @param string $direction
-     * @param int $offset
-     * @return BoardPosition|null
-     * @throws \InvalidArgumentException
-     */
-    public static function createFromDirection(GameMove $gameMove, $direction, $offset)
-    {
-        $isValidFactoryMethod = isset(array_flip(GameMove::DIRECTIONS)[$direction]);
-        $factoryMethod = strtolower($direction);
-
-        if (! $isValidFactoryMethod) {
-            throw new \InvalidArgumentException(
-                __CLASS__ . ": factory method for direction {$direction} was not found"
-            );
-        }
-
-        return self::$factoryMethod($gameMove, $offset);
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function north(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX(),
-                $gameMove->getY() - $offset
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function south(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX(),
-                $gameMove->getY() + $offset
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function west(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX() - $offset,
-                $gameMove->getY()
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function east(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX() + $offset,
-                $gameMove->getY()
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function northeast(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX() + $offset,
-                $gameMove->getY() - $offset
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function southeast(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX() + $offset,
-                $gameMove->getY() + $offset
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
-
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
+     * @param BoardDirection $direction
      * @return BoardPosition
      */
-    private static function southwest(GameMove $gameMove, $offset)
+    public static function advanceOneStep(GameMove $gameMove, BoardDirection $direction)
     {
-        return (
-            new self(
-                $gameMove->getX() - $offset,
-                $gameMove->getY() + $offset
-            )
-        )->returnInstanceIfWithinGameBoard();
-    }
+        $newCoordinates = $direction->advanceCoordinatesToDirection($gameMove->getX(), $gameMove->getY());
 
-    /**
-     * @param GameMove $gameMove
-     * @param int $offset
-     * @return BoardPosition|null
-     */
-    private static function northwest(GameMove $gameMove, $offset)
-    {
-        return (
-            new self(
-                $gameMove->getX() - $offset,
-                $gameMove->getY() - $offset
-            )
-        )->returnInstanceIfWithinGameBoard();
+        return new self($newCoordinates[0], $newCoordinates[1]);
     }
 }

@@ -8,9 +8,14 @@
 
 namespace App\Gomoku\Model;
 
+use App\Gomoku\Utils\BoardDirection;
 use App\Gomoku\Utils\BoardPosition;
+use App\Gomoku\Utils\GameMoveResolver;
+use App\Gomoku\Utils\NeighbourMoveDTO;
+use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\OptimisticLockException;
 use Illuminate\Support\Collection;
 
 /**
@@ -104,7 +109,6 @@ class Game implements \JsonSerializable
      * @var Player|null
      */
     private $winner;
-
 
     public function __construct()
     {
@@ -217,47 +221,21 @@ class Game implements \JsonSerializable
     }
 
     /**
-     * Siirron lisäämisen 1. vaihe: lisätään tehty siirto peliin
-     *
      * @param GameMove $gameMove
-     * @throws \DomainException
+     * @param \Closure $flushCallback
      */
-    public function addMove(GameMove $gameMove)
+    public function handleGameMoveAdded(GameMove $gameMove, \Closure $flushCallback)
     {
-        if (! $this->canAddMove($gameMove)) {
-            throw new \DomainException(
-                __CLASS__ . ": unable to add move into game"
-            );
-        }
+            // Siirron validointi & tallennus
+            $this->addGameMove($gameMove);
 
-        $this->moves->add($gameMove);
-    }
+            $flushCallback();
 
-    /**
-     * Siirron lisäämisen 2. vaihe (tässä vaiheessa lisätty siirto tallennettu jo tietokantaan)
-     *  - linkataan naapurisolut
-     *  - selvitellään mahd. voittaja
-     *
-     * @return int
-     * @throws \RuntimeException, \LogicException
-     */
-    public function resolveLastMoveLinksAndGameState()
-    {
-        if ($this->isTerminated()) {
-            throw new \LogicException(
-                __CLASS__ . ": game #{$this->id} is terminated"
-            );
-        }
+            // Lisätyn siirron naapurien ja mahd. voittajan resolvointi
+            $this->linkNeighbourMoves($gameMove);
+            $this->resolveGameState($gameMove);
 
-        $lastMove = $this->moves->last();
-
-        if ($lastMove) {
-            $this->resolveNeighbours($lastMove);
-
-            $this->resolveGameState($lastMove);
-        }
-
-        return $this->state;
+            $flushCallback();
     }
 
     /**
@@ -291,15 +269,45 @@ class Game implements \JsonSerializable
     }
 
     /**
+     * @param int $moveId
+     * @return GameMove|null
+     */
+    public function getMoveById($moveId)
+    {
+        return ! $moveId
+            ? null
+            : Collection::make($this->moves->toArray())
+                ->first(
+                    function (GameMove $gameMove) use ($moveId) {
+                        return $gameMove->hasId($moveId);
+                    }
+                );
+    }
+
+    /**
      * Palauttaa pelin siirron kohdassa x, y tai NULL jos ei löydy
      *
      * @param int $x
      * @param int $y
+     * @param Player|null $player
      * @return GameMove|null
      */
-    public function getMoveInPosition($x, $y)
+    public function getMoveInPosition($x, $y, Player $player = null)
     {
-        return $this->mapGameMovesByCoordinates()->get($x . $y);
+        $isWithinBoard = function ($position) {
+            return $position >= 0 && $position < self::BOARD_SIZE;
+        };
+
+        return ! ($isWithinBoard($x) && $isWithinBoard($y))
+            ? null
+            : Collection::make($this->moves->toArray())
+                ->first(
+                    function (GameMove $gameMove) use ($x, $y, $player) {
+                        return
+                            $gameMove->isInPosition($x, $y) &&
+                            (! $player || $gameMove->isByPlayer($player));
+                    }
+                );
     }
 
     /**
@@ -317,54 +325,45 @@ class Game implements \JsonSerializable
     }
 
     /**
-     * @param GameMove $latestGameMove
+     * @param GameMove $gameMove
+     * @throws \DomainException
      */
-    private function resolveNeighbours(GameMove $latestGameMove)
+    private function addGameMove(GameMove $gameMove)
     {
-        Collection::make(GameMove::DIRECTIONS)
-            /*
-             * Liikutaan tehdystä siirrosta 1 askel jokaiseen ilmansuuntaan ja katsotaan onko
-             * solussa saman pelaajan tekemä siirto. Jos on, niin palautetaan ko. siirto
-             */
-            ->mapWithKeys(
-                function ($direction) use ($latestGameMove) {
-                    $newPosition = BoardPosition::createFromDirection($latestGameMove, $direction, 1);
-                    $neighbourMove = $newPosition
-                        ? $this->getMoveInPosition($newPosition->x, $newPosition->y)
-                        : null;
+        $this->validateAddMove($gameMove);
 
-                    return $neighbourMove && $neighbourMove->isBySamePlayer($latestGameMove)
-                        ? [$direction => $neighbourMove]
-                        : [];
-                }
-            )
-            ->filter()
+        /** @var GameMove $lastMove */
+        $lastMove = $this->moves->last();
+
+        $this->moves->add($gameMove);
+    }
+
+    /**
+     * @param GameMove $lastGameMove
+     */
+    private function linkNeighbourMoves(GameMove $lastGameMove)
+    {
+        $this
+            ->getNeighbourMoves($lastGameMove)
             ->each(
-                function (GameMove $neighbourMove, $direction) use ($latestGameMove) {
-                    // Nykyisestä siirrosta suuntaan x lähdettäessä naapurina siis $neighbourMove
-                    $latestGameMove->setNeighbourInDirection($neighbourMove, $direction);
-
-                    // Vastakkainen linkki myös naapurista tähän siirtoon
-                    $neighbourMove->setNeighbourInDirection(
-                        $latestGameMove,
-                        BoardPosition::getOppositeDirection($direction)
-                    );
+                function (NeighbourMoveDTO $dto) use ($lastGameMove) {
+                    $lastGameMove->linkNeighbourMoves($dto->gameMove, $dto->boardDirection);
                 }
             );
     }
 
     /**
-     * @param GameMove $newestGameMove
-     * @return int
+     * @param GameMove $lastGameMove
      */
-    private function resolveGameState(GameMove $newestGameMove)
+    private function resolveGameState(GameMove $lastGameMove)
     {
-        $winner = $this->resolveWinner($newestGameMove);
+        $winningGameMoves = $this->getWinningGameMoves($lastGameMove);
 
         // Voittaja selvillä
-        if ($winner) {
+        if ($winningGameMoves->isNotEmpty()) {
             $this->state = self::STATE_ENDED;
-            $this->winner = $winner;
+            $this->winner = $lastGameMove->getPlayer();
+            $winningGameMoves->each->toWinningMove();
         }
         // Tasapeli
         else if ($this->moves->count() === self::MAX_NUMBER_OF_TURNS) {
@@ -378,84 +377,20 @@ class Game implements \JsonSerializable
 
     /**
      * @param GameMove $newestGameMove
-     * @return Player|null
+     * @return Collection
      */
-    private function resolveWinner(GameMove $newestGameMove)
+    private function getWinningGameMoves(GameMove $newestGameMove)
     {
-        return Collection::make(GameMove::DIRECTIONS)
-            ->reduce(
-                function (Player $winner = null, $direction) use ($newestGameMove) {
-                    // Peli on jo päättynyt joten ei tarkistella sen pitemmälle
-                    if ($winner instanceof Player) {
-                        return $winner;
-                    }
-
-                    // Jos äskettäin tehdyllä siirrolla on 4 naapurisiirtoa niin voittaja on selvillä
-                    if ($this->flagWinningGameMoves($newestGameMove, $direction)) {
-                        return $newestGameMove->getPlayer();
-                    }
-
-                    return null;
-                }
-            );
+        return (new GameMoveResolver())->getWinningGameMoves($newestGameMove);
     }
 
     /**
-     * @param GameMove $newestGameMove
-     * @param string $direction
-     * @return bool
+     * @param GameMove $latestGameMove
+     * @return Collection
      */
-    private function flagWinningGameMoves(GameMove $newestGameMove, $direction)
+    private function getNeighbourMoves(GameMove $latestGameMove)
     {
-        // Key-value-taulu [siirron id => siirto]
-        $lookup = $this->mapGameMovesById();
-
-        /** @var Collection $neighbours */
-        $neighbours =
-            Collection::make([
-                $direction,
-                BoardPosition::getOppositeDirection($direction)
-            ])
-            ->reduce(
-                function (Collection $winningNeighbours, $direction) use ($lookup, $newestGameMove) {
-                    if ($winningNeighbours->count() === self::WINNING_NUM_OF_MOVES - 1) {
-                        return $winningNeighbours;
-                    }
-
-                    /**
-                     * Ei ny maailman selkeintä koodia, mutta ideana jatkaa tehdystä siirrosta
-                     * tiettyyn suuntaan jos naapurisiirtoja löytyy. Saisi todennäköisesti vähän
-                     * nätimmäksi jos kukin siirto tietäisi (linkkaisi) naapurinsa tietokantatasolla
-                     * (eikä JSON-taulukossa), jolloin ei tarvitsisi kikkailla lookup-taulun kanssa.
-                     */
-                    $gameMove = $newestGameMove;
-
-                    for ($i = 0; $i < self::WINNING_NUM_OF_MOVES - 1; $i++) {
-                        $nextNeighbourId = $gameMove->getNeighbourMoveIdInDirection($direction);
-                        $nextNeighbour = $lookup->get($nextNeighbourId);
-
-                        // Siirtojen ketju katkeaa joten tiedetään, että voittoa ei ole tulossa
-                        if (! $nextNeighbour) {
-                            break;
-                        }
-
-                        $winningNeighbours->push($nextNeighbour);
-                        $gameMove = $nextNeighbour;
-                    }
-
-                    return $winningNeighbours;
-                },
-                new Collection()
-            );
-
-        if ($neighbours->count() !== self::WINNING_NUM_OF_MOVES - 1) {
-            return false;
-        }
-
-        $newestGameMove->toWinningMove();
-        $neighbours->each->toWinningMove();
-
-        return true;
+        return (new GameMoveResolver)->getNeighbourMoves($latestGameMove);
     }
 
     /**
@@ -476,23 +411,35 @@ class Game implements \JsonSerializable
 
     /**
      * @param GameMove $gameMove
-     * @return bool
+     * @throws \DomainException
      */
-    private function canAddMove(GameMove $gameMove)
+    private function validateAddMove(GameMove $gameMove)
     {
         if ($this->isTerminated() || $this->moves->count() === self::MAX_NUMBER_OF_TURNS) {
-            return false;
+            throw new \DomainException(
+                __CLASS__ . ": terminated game or max number of turns"
+            );
         }
 
         // Jos aloitettu peli niin tiedetään, että ei vielä siirtoja mutta lisäävän pelaajan pitää olla musta
-        if ($this->isStarted()) {
-            return $gameMove->getPlayer()->isBlack();
+        if ($this->isStarted() && ! $gameMove->getPlayer()->isBlack()) {
+            throw new \DomainException(
+                __CLASS__ . ": was expecting black player"
+            );
+        }
+
+        if ($this->isOngoing() && $gameMove->getPlayer()->isSameColor($this->moves->last()->getPlayer())) {
+            throw new \DomainException(
+                __CLASS__ . ": was not expecting player of same colour "
+            );
         }
 
         // Menossa oleva peli eli pitää varmistaa, että pelilauta on siirron kohdalla tyhjä & pelaaja on oikea
-        return
-            ! $this->getMoveInPosition($gameMove->getX(), $gameMove->getY()) &&
-            ! $gameMove->getPlayer()->isSameColor($this->moves->last()->getPlayer());
+        if ($this->getMoveInPosition($gameMove->getX(), $gameMove->getY())) {
+            throw new \DomainException(
+                __CLASS__ . ": has already move in position"
+            );
+        }
     }
 
     /**
@@ -518,31 +465,5 @@ class Game implements \JsonSerializable
         $dateCreated = $latestMove->getDateCreated();
 
         return $dateCreated->diff(new \DateTime())->s <= self::MOVE_UNDO_THRESHOLD;
-    }
-
-    /**
-     * @return Collection
-     */
-    private function mapGameMovesByCoordinates()
-    {
-        return Collection::make($this->moves->toArray())
-            ->mapWithKeys(
-                function (GameMove $gameMove) {
-                    return [$gameMove->getRepresentation() => $gameMove];
-                }
-            );
-    }
-
-    /**
-     * @return Collection
-     */
-    private function mapGameMovesById()
-    {
-        return Collection::make($this->moves->toArray())
-            ->mapWithKeys(
-                function (GameMove $gameMove) {
-                    return [$gameMove->getId() => $gameMove];
-                }
-            );
     }
 }

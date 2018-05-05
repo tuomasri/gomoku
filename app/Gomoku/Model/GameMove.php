@@ -8,6 +8,7 @@
 
 namespace App\Gomoku\Model;
 
+use App\Gomoku\Utils\BoardDirection;
 use Illuminate\Support\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -20,32 +21,6 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class GameMove implements \JsonSerializable
 {
-    /**
-     * Suunnat
-     */
-    const DIRECTION_NORTH     = 'NORTH';
-    const DIRECTION_NORTHEAST = 'NORTHEAST';
-    const DIRECTION_EAST      = 'EAST';
-    const DIRECTION_SOUTHEAST = 'SOUTHEAST';
-    const DIRECTION_SOUTH     = 'SOUTH';
-    const DIRECTION_SOUTHWEST = 'SOUTHWEST';
-    const DIRECTION_WEST      = 'WEST';
-    const DIRECTION_NORTHWEST = 'NORTHWEST';
-
-    /**
-     * @var string[]
-     */
-    const DIRECTIONS = [
-        self::DIRECTION_NORTH,
-        self::DIRECTION_NORTHEAST,
-        self::DIRECTION_EAST,
-        self::DIRECTION_SOUTHEAST,
-        self::DIRECTION_SOUTH,
-        self::DIRECTION_SOUTHWEST,
-        self::DIRECTION_WEST,
-        self::DIRECTION_NORTHWEST,
-    ];
-
     /**
      * @ORM\Id()
      * @ORM\Column(type="integer")
@@ -152,14 +127,41 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * TRUE jos $gameMove on saman pelaajan siirto
-     *
-     * @param GameMove $gameMove
+     * @param int $x
+     * @param int $y
      * @return bool
      */
-    public function isBySamePlayer(GameMove $gameMove)
+    public function isInPosition($x, $y)
     {
-        return $this->player->hasId($gameMove->getPlayer()->getId());
+        return $this->x === $x && $this->y === $y;
+    }
+
+    /**
+     * @param int $id
+     * @return bool
+     */
+    public function hasId($id)
+    {
+        return $this->id === $id;
+    }
+
+    /**
+     * TRUE jos $gameMove on saman pelaajan siirto
+     *
+     * @param Player $player
+     * @return bool
+     */
+    public function isByPlayer(Player $player)
+    {
+        return $this->player->hasId($player->getId());
+    }
+
+    /**
+     * @return Game
+     */
+    public function getGame()
+    {
+        return $this->game;
     }
 
     /**
@@ -205,12 +207,33 @@ class GameMove implements \JsonSerializable
     /**
      * Palauttaa naapurisiirron ID:n tietystä suunnasta tai NULL jos naapuria ei ole
      *
-     * @param string $direction
+     * @param BoardDirection $direction
      * @return int|null
      */
-    public function getNeighbourMoveIdInDirection($direction)
+    public function getNeighbourMoveIdInDirection(BoardDirection $direction)
     {
-        return $this->neighbours[$direction] ?? null;
+        return $this->neighbours[$direction->getDirectionName()] ?? null;
+    }
+
+    /**
+     * @param BoardDirection $direction
+     * @return Collection<GameMove>
+     */
+    public function getNeighboursInDirection(BoardDirection $direction)
+    {
+        return Collection::make(range(0, Game::WINNING_NUM_OF_MOVES - 1))
+            ->reduce(
+                function (Collection $collection, $offset) use ($direction) {
+                    /** @var GameMove $gameMove */
+                    $gameMove = $offset > 0 ? $collection->last() : $this;
+                    $neighbourMoveId = $gameMove ? $gameMove->getNeighbourMoveIdInDirection($direction) : null;
+
+                    return $collection->push($this->game->getMoveById($neighbourMoveId));
+                },
+                Collection::make()
+            )
+            ->filter()
+            ->values();
     }
 
     /**
@@ -222,21 +245,33 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * Asettaa parametrina annetun siirron tämän siirron naapuriksi.
-     *
-     * @param GameMove $gameMove
-     * @param string $direction
-     * @throw \LogicException
+     * @param GameMove $neighbourMove
+     * @param BoardDirection $direction
      */
-    public function setNeighbourInDirection(GameMove $gameMove, $direction)
+    public function linkNeighbourMoves(GameMove $neighbourMove, BoardDirection $direction)
     {
-        if (! $this->isBySamePlayer($gameMove)) {
+        if (! $this->isByPlayer($neighbourMove->getPlayer())) {
             throw new \LogicException(
                 __CLASS__ . ': unable to set neighbours with different players'
             );
         }
 
-        $this->neighbours[$direction] = $gameMove->getId();
+        $this->setNeighbourInDirection($neighbourMove, $direction);
+
+        // Vastakkainen linkki myös naapurista tähän siirtoon
+        $neighbourMove->setNeighbourInDirection($this, $direction->toOppositeDirection());
+    }
+
+    /**
+     * Asettaa parametrina annetun siirron tämän siirron naapuriksi.
+     *
+     * @param GameMove $gameMove
+     * @param BoardDirection $direction
+     * @throw \LogicException
+     */
+    public function setNeighbourInDirection(GameMove $gameMove, BoardDirection $direction)
+    {
+        $this->neighbours[$direction->getDirectionName()] = $gameMove->getId();
     }
 
     /**

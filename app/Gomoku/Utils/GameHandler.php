@@ -69,15 +69,12 @@ class GameHandler
          */
         $this->entityManager->transactional(
             function (EntityManager $entityManager) use ($game, $gameMove) {
-                // Siirto talteen mutta ei vielä muuta
-                $game->addMove($gameMove);
-
-                $entityManager->flush();
-
-                // Lisätyn siirron naapurien ja mahd. voittajan resolvointi
-                $game->resolveLastMoveLinksAndGameState();
-
-                $entityManager->flush();
+                $game->handleGameMoveAdded(
+                    $gameMove,
+                    function () use ($entityManager) {
+                        $entityManager->flush();
+                    }
+                );
             }
         );
 
