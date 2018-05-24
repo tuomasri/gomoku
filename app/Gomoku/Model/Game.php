@@ -8,14 +8,9 @@
 
 namespace App\Gomoku\Model;
 
-use App\Gomoku\Utils\BoardDirection;
-use App\Gomoku\Utils\BoardPosition;
 use App\Gomoku\Utils\GameMoveResolver;
-use App\Gomoku\Utils\NeighbourMoveDTO;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\ORM\OptimisticLockException;
 use Illuminate\Support\Collection;
 
 /**
@@ -232,7 +227,7 @@ class Game implements \JsonSerializable
             $flushCallback();
 
             // Lisätyn siirron naapurien ja mahd. voittajan resolvointi
-            $this->linkNeighbourMoves($gameMove);
+            $gameMove->linkNeighbourMoves();
             $this->resolveGameState($gameMove);
 
             $flushCallback();
@@ -341,23 +336,9 @@ class Game implements \JsonSerializable
     /**
      * @param GameMove $lastGameMove
      */
-    private function linkNeighbourMoves(GameMove $lastGameMove)
-    {
-        $this
-            ->getNeighbourMoves($lastGameMove)
-            ->each(
-                function (NeighbourMoveDTO $dto) use ($lastGameMove) {
-                    $lastGameMove->linkNeighbourMoves($dto->gameMove, $dto->boardDirection);
-                }
-            );
-    }
-
-    /**
-     * @param GameMove $lastGameMove
-     */
     private function resolveGameState(GameMove $lastGameMove)
     {
-        $winningGameMoves = $this->getWinningGameMoves($lastGameMove);
+        $winningGameMoves = (new GameMoveResolver())->getWinningGameMoves($lastGameMove);
 
         // Voittaja selvillä
         if ($winningGameMoves->isNotEmpty()) {
@@ -373,24 +354,6 @@ class Game implements \JsonSerializable
         else {
             $this->state = self::STATE_ONGOING;
         }
-    }
-
-    /**
-     * @param GameMove $newestGameMove
-     * @return Collection
-     */
-    private function getWinningGameMoves(GameMove $newestGameMove)
-    {
-        return (new GameMoveResolver())->getWinningGameMoves($newestGameMove);
-    }
-
-    /**
-     * @param GameMove $latestGameMove
-     * @return Collection
-     */
-    private function getNeighbourMoves(GameMove $latestGameMove)
-    {
-        return (new GameMoveResolver)->getNeighbourMoves($latestGameMove);
     }
 
     /**

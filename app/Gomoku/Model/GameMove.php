@@ -9,6 +9,8 @@
 namespace App\Gomoku\Model;
 
 use App\Gomoku\Utils\BoardDirection;
+use App\Gomoku\Utils\GameMoveResolver;
+use App\Gomoku\Utils\NeighbourMoveDTO;
 use Illuminate\Support\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -245,33 +247,20 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * @param GameMove $neighbourMove
-     * @param BoardDirection $direction
+     * Linkittää naapurisiirrot keskenään (voittotilanteen selvittämistä varten)
      */
-    public function linkNeighbourMoves(GameMove $neighbourMove, BoardDirection $direction)
+    public function linkNeighbourMoves()
     {
-        if (! $this->isByPlayer($neighbourMove->getPlayer())) {
-            throw new \LogicException(
-                __CLASS__ . ': unable to set neighbours with different players'
+        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)
+            ->each(
+                function (NeighbourMoveDTO $dto) {
+                    // Tästä siirrosta linkki naapurisiirtoon
+                    $this->setNeighbourInDirection($dto->gameMove, $dto->boardDirection);
+
+                    // Vastakkainen linkki myös naapurista tähän siirtoon
+                    $dto->gameMove->setNeighbourInDirection($this, $dto->boardDirection->toOppositeDirection());
+                }
             );
-        }
-
-        $this->setNeighbourInDirection($neighbourMove, $direction);
-
-        // Vastakkainen linkki myös naapurista tähän siirtoon
-        $neighbourMove->setNeighbourInDirection($this, $direction->toOppositeDirection());
-    }
-
-    /**
-     * Asettaa parametrina annetun siirron tämän siirron naapuriksi.
-     *
-     * @param GameMove $gameMove
-     * @param BoardDirection $direction
-     * @throw \LogicException
-     */
-    public function setNeighbourInDirection(GameMove $gameMove, BoardDirection $direction)
-    {
-        $this->neighbours[$direction->getDirectionName()] = $gameMove->getId();
     }
 
     /**
@@ -287,6 +276,18 @@ class GameMove implements \JsonSerializable
             'dateCreated'   => $this->dateCreated->format('Y-m-d H:i:s'),
             'playerId'      => $this->player->getId(),
         ];
+    }
+
+    /**
+     * Asettaa parametrina annetun siirron tämän siirron naapuriksi.
+     *
+     * @param GameMove $gameMove
+     * @param BoardDirection $direction
+     * @throw \LogicException
+     */
+    private function setNeighbourInDirection(GameMove $gameMove, BoardDirection $direction)
+    {
+        $this->neighbours[$direction->getDirectionName()] = $gameMove->getId();
     }
 
     /**

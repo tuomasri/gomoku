@@ -21,7 +21,7 @@ class GameMoveResolver
      * @param GameMove $latestGameMove
      * @return Collection<NeighbourMoveDTO>
      */
-    public function getNeighbourMoves(GameMove $latestGameMove)
+    public function getSurroundingNeighbourMoves(GameMove $latestGameMove)
     {
         return
             Collection::make(BoardDirection::getDirections())
