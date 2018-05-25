@@ -247,7 +247,7 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * Linkittää naapurisiirrot keskenään (voittotilanteen selvittämistä varten)
+     * Linkittää naapurisiirrot keskenään (uutta siirtoa tehtäessä)
      */
     public function linkNeighbourMoves()
     {
@@ -259,6 +259,19 @@ class GameMove implements \JsonSerializable
 
                     // Vastakkainen linkki myös naapurista tähän siirtoon
                     $dto->gameMove->setNeighbourInDirection($this, $dto->boardDirection->toOppositeDirection());
+                }
+            );
+    }
+
+    /**
+     * Poistaa naapurisiirtolinkityksen (siirtoa kumottaessa)
+     */
+    public function unlinkNeighbourMoves()
+    {
+        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)
+            ->each(
+                function (NeighbourMoveDTO $dto) {
+                    $dto->gameMove->resetNeighbourInDirection($dto->boardDirection->toOppositeDirection());
                 }
             );
     }
@@ -283,11 +296,20 @@ class GameMove implements \JsonSerializable
      *
      * @param GameMove $gameMove
      * @param BoardDirection $direction
-     * @throw \LogicException
      */
     private function setNeighbourInDirection(GameMove $gameMove, BoardDirection $direction)
     {
         $this->neighbours[$direction->getDirectionName()] = $gameMove->getId();
+    }
+
+    /**
+     * Poistaa parametrina annetussa suunnassa olevan siirron tämän siirron naapureista
+     *
+     * @param BoardDirection $direction
+     */
+    private function resetNeighbourInDirection(BoardDirection $direction)
+    {
+        unset($this->neighbours[$direction->getDirectionName()]);
     }
 
     /**

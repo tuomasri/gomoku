@@ -243,24 +243,15 @@ class Game implements \JsonSerializable
      */
     public function undoGameMove($moveId)
     {
-        if (! $this->canUndoMove($moveId)) {
-            throw new \DomainException(
-                __CLASS__ . ": move #{$moveId} is not undoable"
-            );
-        }
+        $gameMove = $this->getUndoableMove($moveId);
 
-        $move = $this
-            ->moves
-            ->filter(function (GameMove $gameMove) use ($moveId) {
-                return $gameMove->getId() === $moveId;
-            })
-            ->first();
+        $gameMove->unlinkNeighbourMoves();
 
-        $this->moves->removeElement($move);
+        $this->moves->removeElement($gameMove);
 
         $this->state = $this->moves->isEmpty() ? self::STATE_STARTED : self::STATE_ONGOING;
 
-        return $move;
+        return $gameMove;
     }
 
     /**
@@ -407,26 +398,31 @@ class Game implements \JsonSerializable
 
     /**
      * @param int $moveId
-     * @return bool
-     * @throws \RuntimeException
+     * @return GameMove
+     * @throws \DomainException
      */
-    private function canUndoMove($moveId)
+    private function getUndoableMove($moveId)
     {
-        if (! $this->isOngoing()) {
-            return false;
-        }
-
-        /** @var GameMove $latestMove */
-        $latestMove = $this->moves->last();
-
-        if ($latestMove->getId() !== $moveId) {
-            throw new \RuntimeException(
-                __CLASS__ . ": only latest move #{$latestMove->getId()} is undoable"
+        $throwException = function ($message) {
+            throw new \DomainException(
+                __CLASS__ . ": move is not undoable (" . $message . ")"
             );
+        };
+
+        if (! $this->isOngoing()) {
+            $throwException("game is not ongoing");
         }
 
-        $dateCreated = $latestMove->getDateCreated();
+        $lastMove = $this->moves->last();
 
-        return $dateCreated->diff(new \DateTime())->s <= self::MOVE_UNDO_THRESHOLD;
+        if (! $lastMove->hasId($moveId)) {
+            $throwException("only latest move is undoable");
+        }
+
+        if ($lastMove->getDateCreated()->diff(new \DateTime())->s > self::MOVE_UNDO_THRESHOLD) {
+            $throwException("move is not within undo threshold");
+        }
+
+        return $lastMove;
     }
 }
