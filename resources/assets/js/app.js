@@ -1,6 +1,8 @@
-
-import ReactDOM from 'react-dom';
 import React from 'react';
-import Gomoku from './components/Gomoku';
+import ReactDOM from 'react-dom';
+import GameContainer from './components/container/GameContainer';
 
-ReactDOM.render(<Gomoku />, document.getElementById('gomoku'));
+ReactDOM.render(
+    <GameContainer/>,
+    document.getElementById('gomoku')
+);
