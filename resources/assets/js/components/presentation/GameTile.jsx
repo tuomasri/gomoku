@@ -22,7 +22,7 @@ class GameTile extends React.Component
     getPlayerColor()
     {
         const playerId = this.props.move.playerId;
-        const player = _.find(this.props.players, player => playerId === player.id)
+        const player = _.find(this.props.players, player => playerId === player.id);
 
         return player.color;
     }
@@ -31,7 +31,8 @@ class GameTile extends React.Component
     {
         return (
             <button
-                className="button is-outlined"
+                className="bg-grey hover:bg-grey-darker text-white font-bold py-4 px-4
+                           rounded m-3 border border-1 border-solid border-grey"
                 onClick={() => this.props.makeMove(this.props.x, this.props.y)}
             >
             </button>
@@ -41,26 +42,27 @@ class GameTile extends React.Component
     createOccupiedGameTile()
     {
         const playerColor = this.getPlayerColor();
+
         const gametileClasses = classNames({
-            'button': true,
-            'is-black': playerColor === GAME_CONSTANTS.PLAYER_COLOR_BLACK,
-            'is-outlined': playerColor === GAME_CONSTANTS.PLAYER_COLOR_WHITE,
-            'is-loading is-medium': this.props.move.isWinningMove,
+            'rounded-full': true,
+            'shadow-md': true,
+            'font-bold py-4 px-4 rounded m-3': true,
+            'bg-black': playerColor === GAME_CONSTANTS.PLAYER_COLOR_BLACK,
+            'bg-grey-lightest': playerColor === GAME_CONSTANTS.PLAYER_COLOR_WHITE,
+            'border border-1 border-solid border-black': true,
+            'opacity-50': this.props.isTerminatedGame && ! this.props.move.isWinningMove,
+            'opacity-100': this.props.isTerminatedGame && this.props.move.isWinningMove,
         });
         const isDisabled = ! this.props.isLatestMove || this.props.move.isWinningMove;
-        const buttonText = <h1>{playerColor === GAME_CONSTANTS.PLAYER_COLOR_BLACK ? 'M' : 'V'}</h1>;
 
         return isDisabled
-            ? (<button disabled={true} className={gametileClasses}>
-                    {buttonText}
-                </button>)
+            ? <button className={gametileClasses}></button>
             : (<button
                     className={gametileClasses}
                     onClick={() => this.isMoveUndoable()
                         ? this.props.undoMove(this.props.x, this.props.y)
                         : alert("Siirtoa ei voi enää perua")}
                 >
-                    {buttonText}
                 </button>
             );
     }
@@ -77,6 +79,7 @@ GameTile.propTypes = {
     makeMove: PropTypes.func.isRequired,
     undoMove: PropTypes.func.isRequired,
     isLatestMove: PropTypes.bool.isRequired,
+    isTerminatedGame: PropTypes.bool.isRequired,
     move: MOVE_SHAPE,
     players: PropTypes.arrayOf(PLAYER_SHAPE),
 };

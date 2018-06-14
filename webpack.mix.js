@@ -1,5 +1,5 @@
 const { mix } = require('laravel-mix');
-
+const tailwindcss = require('tailwindcss');
 /*
  |--------------------------------------------------------------------------
  | Mix Asset Management
@@ -11,5 +11,13 @@ const { mix } = require('laravel-mix');
  |
  */
 
+mix.disableNotifications();
+
 mix.react('resources/assets/js/app.js', 'public/js')
-    .disableNotifications();
+   .sass('resources/assets/sass/app.scss', 'public/css')
+    .options({
+        postCss: [ tailwindcss('./tailwind.js') ],
+        processCssUrls: false,
+    });
+
+

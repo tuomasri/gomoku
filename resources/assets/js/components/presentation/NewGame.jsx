@@ -1,47 +1,74 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { GAME_SHAPE,isTerminatedGame } from '../../utils/Constants';
+import { GAME_CONSTANTS, GAME_SHAPE, isTerminatedGame } from '../../utils/Constants';
+import Modal from "./Modal";
 
 class NewGame extends React.Component
 {
     constructor(props)
     {
         super(props);
+
+        this.state = {
+            confirmNewGameStart: false,
+        };
+    }
+
+    static getDerivedStateFromProps(nextProps, prevState)
+    {
+        const confirmNewGameStart = (
+            nextProps.game &&
+            isTerminatedGame(nextProps.game) &&
+            ! prevState.confirmNewGameStart
+        );
+
+        return {confirmNewGameStart};
     }
 
     createNewGameButton()
     {
         return (
-            <a
+            <button
                 onClick={() => this.props.startGame()}
-                className="button is-success is-fullwidth"
+                className="bg-blue hover:bg-blue-dark py-2 px-2 font-bold text-white rounded"
             >
                 Uusi peli
-            </a>
+            </button>
         );
+    }
+
+    createBodyText()
+    {
+        const winnerColor = _.get(this.props.game, 'winner.color', null);
+
+        if (! winnerColor) {
+            return "..tasapeliin.";
+        }
+
+        return winnerColor === GAME_CONSTANTS.PLAYER_COLOR_BLACK
+            ? "..musta pelaaja voitti."
+            : "..valkoinen pelaaja voitti.";
     }
 
     render()
     {
-        if (this.props.game && ! isTerminatedGame(this.props.game)) {
-            return null;
+        if (! this.props.game) {
+            return (
+                <div className="flex h-screen items-center justify-center">
+                    <div className="w-1/1">
+                        {this.createNewGameButton()}
+                    </div>
+                </div>
+            );
         }
 
         return (
-            <section className="hero">
-                <div className="hero-body">
-                    <div className="container">
-                        <div className="columns">
-                            <div className="column is-half">
-                                <h1 className="title">Gomoku</h1>
-                            </div>
-                            <div className="column is-half">
-                                {this.createNewGameButton()}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <Modal
+                isOpen={this.state.confirmNewGameStart}
+                headerText="Peli päättyi"
+                bodyText={this.createBodyText()}
+                successButton={this.createNewGameButton()}
+            />
         );
     }
 }

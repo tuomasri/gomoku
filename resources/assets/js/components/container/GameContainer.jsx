@@ -19,10 +19,6 @@ class GameContainer extends React.Component
 
     getNextPlayer()
     {
-        if (isTerminatedGame(this.state.game)) {
-            throw new Error("Game is already terminated");
-        }
-
         const players = _.get(this.state.game, 'players', []);
         const lastMove = _.last(_.get(this.state.game, 'moves', {}));
 
@@ -46,10 +42,6 @@ class GameContainer extends React.Component
 
     makeMove(x, y)
     {
-        if (isTerminatedGame(this.state.game)) {
-            throw new Error("Game is terminated");
-        }
-
         this.setState({isLoading: true});
 
         axios
@@ -66,10 +58,6 @@ class GameContainer extends React.Component
 
     undoMove(x, y)
     {
-        if (isTerminatedGame(this.state.game)) {
-            throw new Error("Game is terminatd");
-        }
-
         const latestMove = _.last(_.get(this.state.game, 'moves', {}));
 
         if (! (latestMove.x === x && latestMove.y === y)) {
@@ -94,7 +82,6 @@ class GameContainer extends React.Component
             <NewGame
                 key="gomoku-game-new"
                 game={this.state.game}
-                isLoading={this.state.isLoading}
                 startGame={() => this.startGame()}
             />,
             <GameBoard
