@@ -106,38 +106,4 @@ class BoardDirection
     {
         return $this->directionName;
     }
-
-    /**
-     * @param int $x
-     * @param int $y
-     * @return int[]
-     */
-    public function advanceCoordinatesToDirection($x, $y)
-    {
-        switch ($this->directionName) {
-            case self::DIRECTION_NORTH:
-                return [$x, $y - 1];
-
-            case self::DIRECTION_SOUTH:
-                return [$x, $y + 1];
-
-            case self::DIRECTION_WEST:
-                return [$x - 1, $y];
-
-            case self::DIRECTION_EAST:
-                return [$x + 1, $y];
-
-            case self::DIRECTION_NORTHEAST:
-                return [$x + 1, $y - 1];
-
-            case self::DIRECTION_SOUTHEAST:
-                return [$x + 1, $y + 1];
-
-            case self::DIRECTION_SOUTHWEST:
-                return [$x - 1, $y + 1];
-
-            case self::DIRECTION_NORTHWEST:
-                return [$x - 1, $y - 1];
-        }
-    }
 }

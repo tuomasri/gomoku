@@ -47,8 +47,46 @@ class BoardPosition
      */
     public static function advanceOneStep(GameMove $gameMove, BoardDirection $direction)
     {
-        $newCoordinates = $direction->advanceCoordinatesToDirection($gameMove->getX(), $gameMove->getY());
+        $newCoordinates = self::getCoordinatesInDirection($gameMove, $direction);
 
-        return new self($newCoordinates[0], $newCoordinates[1]);
+        return new self(...$newCoordinates);
     }
+
+    /**
+     * @param GameMove $gameMove
+     * @param BoardDirection $direction
+     * @return int[]
+     */
+    private static function getCoordinatesInDirection(GameMove $gameMove, BoardDirection $direction)
+    {
+        $x = $gameMove->getX();
+        $y = $gameMove->getY();
+
+        switch ($direction->getDirectionName()) {
+            case BoardDirection::DIRECTION_NORTH:
+                return [$x, $y - 1];
+
+            case BoardDirection::DIRECTION_SOUTH:
+                return [$x, $y + 1];
+
+            case BoardDirection::DIRECTION_WEST:
+                return [$x - 1, $y];
+
+            case BoardDirection::DIRECTION_EAST:
+                return [$x + 1, $y];
+
+            case BoardDirection::DIRECTION_NORTHEAST:
+                return [$x + 1, $y - 1];
+
+            case BoardDirection::DIRECTION_SOUTHEAST:
+                return [$x + 1, $y + 1];
+
+            case BoardDirection::DIRECTION_SOUTHWEST:
+                return [$x - 1, $y + 1];
+
+            case BoardDirection::DIRECTION_NORTHWEST:
+                return [$x - 1, $y - 1];
+        }
+    }
+
 }
