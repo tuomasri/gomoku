@@ -34,7 +34,7 @@ class GameHandler
      */
     public function handleGameStart($boardSize = null)
     {
-        $game = Game::startGame($boardSize ?: self::DEFAULT_BOARD_SIZE);
+        $game = Game::initializeGame($boardSize ?: self::DEFAULT_BOARD_SIZE);
 
         $this->objectManager->persist($game);
 

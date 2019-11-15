@@ -103,12 +103,15 @@ class Game implements \JsonSerializable
      * @param int $boardSize
      * @return Game
      */
-    public static function startGame($boardSize)
+    public static function initializeGame($boardSize)
     {
         $instance = new self($boardSize);
 
-        $instance->addPlayer(Player::createBlackPlayer());
-        $instance->addPlayer(Player::createWhitePlayer());
+        $blackPlayer = Player::createBlackPlayer($instance);
+        $whitePlayer = Player::createWhitePlayer($instance);
+
+        $instance->players->add($blackPlayer);
+        $instance->players->add($whitePlayer);
 
         return $instance;
     }
@@ -119,14 +122,6 @@ class Game implements \JsonSerializable
     public function getId()
     {
         return $this->id;
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getPlayers()
-    {
-        return $this->players;
     }
 
     /**
@@ -147,7 +142,7 @@ class Game implements \JsonSerializable
         return Collection::make($this->players)
             ->filter(
                 function (Player $player) use ($playerId) {
-                    return $player->hasId($playerId);
+                    return $player->matchesId($playerId);
                 }
             )
             ->tap(
@@ -160,14 +155,6 @@ class Game implements \JsonSerializable
                 }
             )
             ->first();
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getMoves()
-    {
-        return $this->moves;
     }
 
     /**
@@ -184,23 +171,6 @@ class Game implements \JsonSerializable
     public function isTerminated()
     {
         return $this->isTerminated;
-    }
-
-    /**
-     * @param Player $player
-     * @throws \DomainException
-     */
-    public function addPlayer(Player $player)
-    {
-        if (! $this->canAddPlayer($player)) {
-            throw new \DomainException(
-                __CLASS__ . ": unable to add player into game #{$this->id}"
-            );
-        }
-
-        $this->players->add($player);
-
-        $player->setGame($this);
     }
 
     /**
@@ -251,7 +221,7 @@ class Game implements \JsonSerializable
             : Collection::make($this->moves->toArray())
                 ->first(
                     function (GameMove $gameMove) use ($moveId) {
-                        return $gameMove->hasId($moveId);
+                        return $gameMove->matchesId($moveId);
                     }
                 );
     }
@@ -331,22 +301,6 @@ class Game implements \JsonSerializable
                 }
             );
         }
-    }
-
-    /**
-     * @param Player $player
-     * @return bool
-     */
-    private function canAddPlayer(Player $player)
-    {
-        if (! $this->isOngoing() || $this->players->count() > 1) {
-            return false;
-        }
-
-        /** @var Player $currentPlayer */
-        $currentPlayer = $this->players->first();
-
-        return $currentPlayer ? ! $currentPlayer->isSameColor($player) : true;
     }
 
     /**

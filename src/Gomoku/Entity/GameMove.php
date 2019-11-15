@@ -115,16 +115,6 @@ class GameMove implements \JsonSerializable
     }
 
     /**
-     * Palauttaa siirron koordinaatit muodossa X.Y
-     *
-     * @return string
-     */
-    public function getRepresentation()
-    {
-        return $this->x . $this->y;
-    }
-
-    /**
      * @param int $x
      * @param int $y
      * @return bool
@@ -138,7 +128,7 @@ class GameMove implements \JsonSerializable
      * @param int $id
      * @return bool
      */
-    public function hasId($id)
+    public function matchesId($id)
     {
         return $this->id === $id;
     }
@@ -151,7 +141,7 @@ class GameMove implements \JsonSerializable
      */
     public function isByPlayer(Player $player)
     {
-        return $this->player->hasId($player->getId());
+        return $this->player->matchesId($player->getId());
     }
 
     /**
@@ -232,14 +222,6 @@ class GameMove implements \JsonSerializable
             )
             ->filter()
             ->values();
-    }
-
-    /**
-     * @return \DateTime
-     */
-    public function getDateCreated()
-    {
-        return clone $this->dateCreated;
     }
 
     /**

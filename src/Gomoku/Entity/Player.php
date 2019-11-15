@@ -47,34 +47,31 @@ class Player implements \JsonSerializable
 
     /**
      * Player constructor.
+     * @param Game $game
      * @param int $color
-     * @throws \InvalidArgumentException
      */
-    public function __construct($color = self::COLOR_BLACK)
+    private function __construct(Game $game, $color)
     {
-        if (! ($color === self::COLOR_BLACK || $color === self::COLOR_WHITE)) {
-            throw new \InvalidArgumentException(
-                __CLASS__ . ": was not expecting {$color} as color"
-            );
-        }
-
+        $this->game = $game;
         $this->color = $color;
     }
 
     /**
+     * @param Game $game
      * @return Player
      */
-    public static function createBlackPlayer()
+    public static function createBlackPlayer(Game $game)
     {
-        return new self(self::COLOR_BLACK);
+        return new self($game, self::COLOR_BLACK);
     }
 
     /**
+     * @param Game $game
      * @return Player
      */
-    public static function createWhitePlayer()
+    public static function createWhitePlayer(Game $game)
     {
-        return new self(self::COLOR_WHITE);
+        return new self($game, self::COLOR_WHITE);
     }
 
     /**
@@ -89,58 +86,9 @@ class Player implements \JsonSerializable
      * @param $id
      * @return bool
      */
-    public function hasId($id)
+    public function matchesId($id)
     {
         return $this->id === $id;
-    }
-
-    /**
-     * @return Game
-     */
-    public function getGame()
-    {
-        return $this->game;
-    }
-
-    /**
-     * @param Game $game
-     */
-    public function setGame(Game $game)
-    {
-        $this->game = $game;
-    }
-
-    /**
-     * @param Player $player
-     * @return bool
-     */
-    public function isSameColor(Player $player)
-    {
-        return $this->color === $player->getColor();
-    }
-
-    /**
-     * @return bool
-     */
-    public function isBlack()
-    {
-        return $this->color === self::COLOR_BLACK;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isWhite()
-    {
-        return ! $this->isBlack();
-    }
-
-    /**
-     * @return int
-     */
-    public function getColor()
-    {
-        return $this->color;
     }
 
     /**
