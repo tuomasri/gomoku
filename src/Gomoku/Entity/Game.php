@@ -25,26 +25,9 @@ use Tightenco\Collect\Support\Collection;
 class Game implements \JsonSerializable
 {
     /**
-     * Uusi peli (ei sisällä ainuttakaan siirtoa)
-     */
-    const STATE_STARTED = 1;
-
-    /**
-     * Aloitettu peli (1. siirto tehty)
-     */
-    const STATE_ONGOING = 2;
-
-    /**
-     * Päättynyt peli (voittaja selvillä tai tasapeli)
-     */
-    const STATE_ENDED = 3;
-
-    /**
      * 5 vierekkäisellä siirrolla (pystyyn, vaakaan & viistosti) voittaa pelin
      */
     const WINNING_NUM_OF_MOVES = 5;
-
-
 
     /**
      * Viimeisimmän siirron perumiseen on aikaa 5 sekuntia siirron tekemisestä
@@ -59,13 +42,6 @@ class Game implements \JsonSerializable
      * @var int
      */
     private $id;
-
-    /**
-     * @ORM\Column(type="smallint")
-     *
-     * @var int
-     */
-    private $state;
 
     /**
      * Peliin linkatut pelaajat
@@ -98,18 +74,29 @@ class Game implements \JsonSerializable
     private $winner;
 
     /**
+     * @ORM\Column(name="is_terminated", type="boolean")
+     *
+     * @var bool
+     */
+    private $isTerminated;
+
+    /**
      * @ORM\Column(type="smallint", name="board_size")
      *
      * @var int
      */
     private $boardSize;
 
-    public function __construct($boardSize)
+    /**
+     * Game constructor.
+     * @param int $boardSize
+     */
+    private function __construct($boardSize)
     {
-        $this->state = self::STATE_STARTED;
         $this->players = new ArrayCollection();
         $this->moves = new ArrayCollection();
         $this->boardSize = $boardSize;
+        $this->isTerminated = false;
     }
 
     /**
@@ -186,25 +173,17 @@ class Game implements \JsonSerializable
     /**
      * @return bool
      */
-    public function isTerminated()
-    {
-        return $this->state === self::STATE_ENDED;
-    }
-
-    /**
-     * @return bool
-     */
     public function isOngoing()
     {
-        return $this->state === self::STATE_ONGOING;
+        return ! $this->isTerminated;
     }
 
     /**
      * @return bool
      */
-    public function isStarted()
+    public function isTerminated()
     {
-        return $this->state === self::STATE_STARTED;
+        return $this->isTerminated;
     }
 
     /**
@@ -230,16 +209,16 @@ class Game implements \JsonSerializable
      */
     public function handleGameMoveAdded(GameMove $gameMove, \Closure $flushCallback)
     {
-            // Siirron validointi & tallennus
-            $this->addGameMove($gameMove);
+        // Siirron validointi & tallennus
+        $this->addGameMove($gameMove);
 
-            $flushCallback();
+        $flushCallback();
 
-            // Lisätyn siirron naapurien ja mahd. voittajan resolvointi
-            $gameMove->linkNeighbourMoves();
-            $this->resolveGameState($gameMove);
+        // Lisätyn siirron naapurien ja mahd. voittajan resolvointi
+        $gameMove->linkNeighbourMoves();
+        $this->resolveNewGameState($gameMove);
 
-            $flushCallback();
+        $flushCallback();
     }
 
     /**
@@ -257,8 +236,6 @@ class Game implements \JsonSerializable
         $gameMove->unlinkNeighbourMoves();
 
         $this->moves->removeElement($gameMove);
-
-        $this->state = $this->moves->isEmpty() ? self::STATE_STARTED : self::STATE_ONGOING;
 
         return $gameMove;
     }
@@ -312,10 +289,10 @@ class Game implements \JsonSerializable
     {
         return [
             'id'      => $this->id,
-            'state'   => $this->state,
             'players' => Collection::make($this->players)->map->jsonSerialize()->all(),
             'moves'   => Collection::make($this->moves)->map->jsonSerialize()->all(),
             'winner'  => $this->winner ? $this->winner->jsonSerialize() : null,
+            'isTerminated' => $this->isTerminated,
         ];
     }
 
@@ -332,32 +309,27 @@ class Game implements \JsonSerializable
     {
         $this->validateAddMove($gameMove);
 
-        /** @var GameMove $lastMove */
-        $lastMove = $this->moves->last();
-
         $this->moves->add($gameMove);
     }
 
     /**
      * @param GameMove $lastGameMove
      */
-    private function resolveGameState(GameMove $lastGameMove)
+    private function resolveNewGameState(GameMove $lastGameMove)
     {
         $winningGameMoves = (new GameMoveResolver())->getWinningGameMoves($lastGameMove);
 
-        // Voittaja selvillä
-        if ($winningGameMoves->isNotEmpty()) {
-            $this->state = self::STATE_ENDED;
+        $this->isTerminated =
+            ! $winningGameMoves->isEmpty() ||  // Voitto
+            $this->moves->count() === $this->getMaxNumberOfTurns(); // Tasapeli
+
+        if (! $winningGameMoves->isEmpty()) {
             $this->winner = $lastGameMove->getPlayer();
-            $winningGameMoves->each->toWinningMove();
-        }
-        // Tasapeli
-        else if ($this->moves->count() === $this->getMaxNumberOfTurns()) {
-            $this->state = self::STATE_ENDED;
-        }
-        // Peli jatkuu
-        else {
-            $this->state = self::STATE_ONGOING;
+            $winningGameMoves->each(
+                function (GameMove $gameMove) {
+                    $gameMove->flagAsWinningMove();
+                }
+            );
         }
     }
 
@@ -367,7 +339,7 @@ class Game implements \JsonSerializable
      */
     private function canAddPlayer(Player $player)
     {
-        if (! $this->isStarted() || $this->players->count() > 1) {
+        if (! $this->isOngoing() || $this->players->count() > 1) {
             return false;
         }
 
@@ -389,14 +361,10 @@ class Game implements \JsonSerializable
             );
         }
 
-        // Jos aloitettu peli niin tiedetään, että ei vielä siirtoja mutta lisäävän pelaajan pitää olla musta
-        if ($this->isStarted() && ! $gameMove->getPlayer()->isBlack()) {
-            throw new \DomainException(
-                __CLASS__ . ": was expecting black player"
-            );
-        }
+        /** @var GameMove $lastMove */
+        $lastMove = $this->moves->last();
 
-        if ($this->isOngoing() && $gameMove->getPlayer()->isSameColor($this->moves->last()->getPlayer())) {
+        if ($lastMove && $gameMove->isByPlayer($lastMove->getPlayer())) {
             throw new \DomainException(
                 __CLASS__ . ": was not expecting player of same colour "
             );
@@ -423,13 +391,9 @@ class Game implements \JsonSerializable
             );
         };
 
-        if (! $this->isOngoing()) {
-            $throwException("game is not ongoing");
-        }
-
         $lastMove = $this->moves->last();
 
-        if (! $lastMove->hasId($moveId)) {
+        if (! ($lastMove && $lastMove->hasId($moveId))) {
             $throwException("only latest move is undoable");
         }
 

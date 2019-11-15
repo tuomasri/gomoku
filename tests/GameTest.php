@@ -10,10 +10,10 @@ class GameTest extends WebTestCase
 {
     private const GAME_SHAPE = [
         'id',
-        'state',
         'players',
         'moves',
         'winner',
+        'isTerminated',
     ];
 
     private const PLAYER_SHAPE = [
@@ -28,14 +28,6 @@ class GameTest extends WebTestCase
         'isWinningMove',
         'dateCreated',
         'playerId'
-    ];
-
-    private const GAME_MOVE_RESPONSE_SHAPE = [
-        'id',
-        'state',
-        'players',
-        'moves',
-        'winner',
     ];
 
     public function testNewGame()
@@ -58,6 +50,8 @@ class GameTest extends WebTestCase
                 $this->assertArrayHasKey($property, $player);
             }
         }
+
+        $this->assertEquals(false, $game['isTerminated']);
     }
 
     public function testGameMove()
@@ -74,13 +68,13 @@ class GameTest extends WebTestCase
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
         $this->assertJson($response->getContent());
 
-        $gameMove = json_decode($response->getContent(), true);
-        $players = $gameMove['players'] ?? [];
+        $game = json_decode($response->getContent(), true);
+        $players = $game['players'] ?? [];
         $player1 = $players[0] ?? [];
-        $move = $gameMove['moves'][0] ?? null;
+        $move = $game['moves'][0] ?? null;
 
-        foreach (self::GAME_MOVE_RESPONSE_SHAPE as $property) {
-            $this->assertArrayHasKey($property, $gameMove);
+        foreach (self::GAME_SHAPE as $property) {
+            $this->assertArrayHasKey($property, $game);
         }
 
         foreach (self::PLAYER_SHAPE as $property) {
@@ -98,6 +92,8 @@ class GameTest extends WebTestCase
         $this->assertEquals(2, $move['y']);
 
         $this->assertEquals($player1['id'], $move['playerId']);
+
+        $this->assertEquals(false, $game['isTerminated']);
     }
 
     public function testMakeConflictingMove()
@@ -156,15 +152,17 @@ class GameTest extends WebTestCase
 
         $response = $this->createGameMove($game['id'], $blackPlayerId, 0, 4);
 
-        $winningMove = json_decode($response->getContent(), true);
+        $game = json_decode($response->getContent(), true);
 
-        $winner = $winningMove['winner'] ?? null;
+        $winner = $game['winner'] ?? null;
 
         foreach (self::PLAYER_SHAPE as $property) {
             $this->assertArrayHasKey($property, $winner);
         }
 
         $this->assertEquals($blackPlayerId, $winner['id']);
+
+        $this->assertEquals(true, $game['isTerminated']);
     }
 
     public function testHorizontalWin()
@@ -187,11 +185,13 @@ class GameTest extends WebTestCase
         $this->createGameMove($game['id'], $whitePlayerId, 4, 4);
         $response = $this->createGameMove($game['id'], $blackPlayerId, 5, 0);
 
-        $winningMove = json_decode($response->getContent(), true);
+        $game = json_decode($response->getContent(), true);
 
-        $winner = $winningMove['winner'] ?? null;
+        $winner = $game['winner'] ?? null;
 
         $this->assertEquals($blackPlayerId, $winner['id']);
+
+        $this->assertEquals(true, $game['isTerminated']);
     }
 
     public function testSlantedWin()
@@ -215,11 +215,13 @@ class GameTest extends WebTestCase
 
         $response = $this->createGameMove($game['id'], $blackPlayerId, 5, 4);
 
-        $winningMove = json_decode($response->getContent(), true);
+        $game = json_decode($response->getContent(), true);
 
-        $winner = $winningMove['winner'] ?? null;
+        $winner = $game['winner'] ?? null;
 
         $this->assertEquals($blackPlayerId, $winner['id']);
+
+        $this->assertEquals(true, $game['isTerminated']);
     }
 
     /**
@@ -246,11 +248,13 @@ class GameTest extends WebTestCase
 
         $response = $this->createGameMove($game['id'], $blackPlayerId, 3, 0);
 
-        $winningMove = json_decode($response->getContent(), true);
+        $game = json_decode($response->getContent(), true);
 
-        $winner = $winningMove['winner'] ?? null;
+        $winner = $game['winner'] ?? null;
 
         $this->assertEquals($blackPlayerId, $winner['id']);
+
+        $this->assertEquals(true, $game['isTerminated']);
     }
 
     public function testAnotherMergeWin()
@@ -274,11 +278,13 @@ class GameTest extends WebTestCase
 
         $response = $this->createGameMove($game['id'], $blackPlayerId, 2, 0);
 
-        $winningMove = json_decode($response->getContent(), true);
+        $game = json_decode($response->getContent(), true);
 
-        $winner = $winningMove['winner'] ?? null;
+        $winner = $game['winner'] ?? null;
 
         $this->assertEquals($blackPlayerId, $winner['id']);
+
+        $this->assertEquals(true, $game['isTerminated']);
     }
 
     public function testTie()
@@ -294,12 +300,13 @@ class GameTest extends WebTestCase
         $this->createGameMove($game['id'], $blackPlayerId, 1, 0);
         $response = $this->createGameMove($game['id'], $whitePlayerId, 1, 1);
 
-        $tieMove = json_decode($response->getContent(), true);
+        $game = json_decode($response->getContent(), true);
 
-        $winner = $tieMove['winner'] ?? null;
+        $winner = $game['winner'] ?? false;
 
-        $this->assertEquals(Game::STATE_ENDED, $tieMove['state']);
         $this->assertEquals($winner, null);
+
+        $this->assertEquals(true, $game['isTerminated']);
     }
 
     /**

@@ -197,7 +197,7 @@ class GameMove implements \JsonSerializable
     /**
      * Liputtaa siirron voittavaksi (näitä muodostuu siis 5 voittotilanteessa)
      */
-    public function toWinningMove()
+    public function flagAsWinningMove()
     {
         $this->isWinningMove = true;
     }

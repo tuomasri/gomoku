@@ -10,7 +10,7 @@ namespace App\Gomoku\Utils;
 
 use App\Gomoku\Entity\Game;
 use App\Gomoku\Entity\GameMove;
-use Illuminate\Support\Collection;
+use Tightenco\Collect\Support\Collection;
 
 class GameMoveResolver
 {
