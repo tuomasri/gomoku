@@ -1,0 +1,19 @@
+index:
+    path: /
+    controller: App\Controller\SiteController::index
+    methods: GET
+
+api_game_new:
+  path:       /api/game
+  controller: App\Controller\Api\GameController::save
+  methods:    POST
+
+api_game_move_new:
+  path:       /api/game/{gameId}/moves
+  controller: App\Controller\Api\GameMoveController::save
+  methods:    POST
+
+api_game_move_delete:
+  path:       /api/game/{gameId}/moves
+  controller: App\Controller\Api\GameMoveController::delete
+  methods:    DELETE
