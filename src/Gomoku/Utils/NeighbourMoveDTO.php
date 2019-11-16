@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: tuomas
@@ -23,10 +23,6 @@ class NeighbourMoveDTO
      */
     public $boardDirection;
 
-    /**
-     * @param GameMove $gameMove
-     * @param BoardDirection $boardDirection
-     */
     public function __construct(GameMove $gameMove, BoardDirection $boardDirection)
     {
         $this->gameMove = $gameMove;

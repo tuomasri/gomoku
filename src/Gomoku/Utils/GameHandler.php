@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace App\Gomoku\Utils;
 
@@ -6,7 +6,6 @@ use App\Gomoku\Entity\Game;
 use App\Gomoku\Entity\GameMove;
 use App\Repository\GameRepository;
 use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\ORM\NoResultException;
 
 class GameHandler
 {
@@ -26,11 +25,7 @@ class GameHandler
         $this->objectManager = $objectManager;
     }
 
-    /**
-     * @param int $boardSize
-     * @return Game
-     */
-    public function handleGameStart($boardSize = null)
+    public function handleGameStart(int $boardSize = null): Game
     {
         $game = Game::initializeGame($boardSize ?: self::DEFAULT_BOARD_SIZE);
 
@@ -41,17 +36,7 @@ class GameHandler
         return $game;
     }
 
-    /**
-     * Siirron lisääminen peliin
-     *
-     * @param $playerId
-     * @param $x
-     * @param $xy
-     * @param int $gameId
-     * @return Game
-     * @throws NoResultException
-     */
-    public function addGameMove($playerId, $x, $y, $gameId)
+    public function addGameMove(int $gameId, int $playerId, int $x, int $y): Game
     {
         $game = $this->getGame($gameId);
 
@@ -76,15 +61,7 @@ class GameHandler
         return $game;
     }
 
-    /**
-     * Siirron peruminen (onnistuu vain viimeisimmälle siirrolle 5 sekunnin sisällä sen tekoajasta)
-     *
-     * @param int $gameId
-     * @param int $moveId
-     * @return Game
-     * @throws \DomainException, \RuntimeException
-     */
-    public function undoGameMove($gameId, $moveId)
+    public function undoGameMove(int $gameId, int $moveId): Game
     {
         $game = $this->getGame($gameId);
         $move = $game->undoGameMove((int) $moveId);
@@ -96,12 +73,7 @@ class GameHandler
         return $game;
     }
 
-    /**
-     * @param int $gameId
-     * @return Game
-     * @throws NoResultException
-     */
-    private function getGame($gameId)
+    private function getGame(int $gameId): Game
     {
         /** @var GameRepository $repository */
         $repository = $this->objectManager->getRepository('Gomoku:Game');

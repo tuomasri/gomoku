@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: tuomas
@@ -91,7 +91,7 @@ class Game implements \JsonSerializable
      * Game constructor.
      * @param int $boardSize
      */
-    private function __construct($boardSize)
+    private function __construct(int $boardSize)
     {
         $this->players = new ArrayCollection();
         $this->moves = new ArrayCollection();
@@ -103,7 +103,7 @@ class Game implements \JsonSerializable
      * @param int $boardSize
      * @return Game
      */
-    public static function initializeGame($boardSize)
+    public static function initializeGame(int $boardSize)
     {
         $instance = new self($boardSize);
 
@@ -116,28 +116,17 @@ class Game implements \JsonSerializable
         return $instance;
     }
 
-    /**
-     * @return int
-     */
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-    /**
-     * @return int
-     */
-    public function getBoardSize()
+    public function getBoardSize(): int
     {
         return $this->boardSize;
     }
 
-    /**
-     * @param int $playerId
-     * @return Player
-     * @throws \RuntimeException
-     */
-    public function getPlayerById($playerId)
+    public function getPlayerById(int $playerId): Player
     {
         return Collection::make($this->players)
             ->filter(
@@ -157,27 +146,17 @@ class Game implements \JsonSerializable
             ->first();
     }
 
-    /**
-     * @return bool
-     */
-    public function isOngoing()
+    public function isOngoing(): bool
     {
         return ! $this->isTerminated;
     }
 
-    /**
-     * @return bool
-     */
-    public function isTerminated()
+    public function isTerminated(): bool
     {
         return $this->isTerminated;
     }
 
-    /**
-     * @param GameMove $gameMove
-     * @return \Generator
-     */
-    public function handleNewGameMove(GameMove $gameMove)
+    public function handleNewGameMove(GameMove $gameMove): \Generator
     {
         // Siirron validointi & tallennus
         $this->addGameMove($gameMove);
@@ -191,15 +170,7 @@ class Game implements \JsonSerializable
         yield true;
     }
 
-    /**
-     * Siirron peruminen (sallii ainoastaan viimeisimmän siirron perumisen).
-     * Ei tietty välttämättä tarvitsisi ID:tä parametrina.
-     *
-     * @param int $moveId
-     * @return GameMove
-     * @throws \DomainException, \RuntimeException
-     */
-    public function undoGameMove($moveId)
+    public function undoGameMove(int $moveId): GameMove
     {
         $gameMove = $this->getUndoableMove($moveId);
 
@@ -210,52 +181,33 @@ class Game implements \JsonSerializable
         return $gameMove;
     }
 
-    /**
-     * @param int $moveId
-     * @return GameMove|null
-     */
-    public function getMoveById($moveId)
+    public function getMoveById(int $moveId): ?GameMove
     {
-        return ! $moveId
-            ? null
-            : Collection::make($this->moves->toArray())
-                ->first(
-                    function (GameMove $gameMove) use ($moveId) {
-                        return $gameMove->matchesId($moveId);
-                    }
-                );
+        return Collection::make($this->moves->toArray())->first(
+            function (GameMove $gameMove) use ($moveId) {
+                return $gameMove->matchesId($moveId);
+            }
+        );
     }
 
-    /**
-     * Palauttaa pelin siirron kohdassa x, y tai NULL jos ei löydy
-     *
-     * @param int $x
-     * @param int $y
-     * @param Player|null $player
-     * @return GameMove|null
-     */
-    public function getMoveInPosition($x, $y, Player $player = null)
+    public function getMoveInPosition(int $x, int $y, Player $player = null): ?GameMove
     {
         $isWithinBoard = function ($position) {
             return $position >= 0 && $position < $this->boardSize;
         };
 
-        return ! ($isWithinBoard($x) && $isWithinBoard($y))
-            ? null
-            : Collection::make($this->moves->toArray())
-                ->first(
-                    function (GameMove $gameMove) use ($x, $y, $player) {
-                        return
-                            $gameMove->isInPosition($x, $y) &&
-                            (! $player || $gameMove->isByPlayer($player));
-                    }
-                );
+        return $isWithinBoard($x) && $isWithinBoard($y)
+            ? Collection::make($this->moves->toArray())->first(
+                function (GameMove $gameMove) use ($x, $y, $player) {
+                    return
+                        $gameMove->isInPosition($x, $y) &&
+                        (! $player || $gameMove->isByPlayer($player));
+                }
+            )
+            : null;
     }
 
-    /**
-     * @return array
-     */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return [
             'id'      => $this->id,
@@ -266,26 +218,19 @@ class Game implements \JsonSerializable
         ];
     }
 
-    private function getMaxNumberOfTurns()
+    private function getMaxNumberOfTurns(): int
     {
         return $this->boardSize * $this->boardSize;
     }
 
-    /**
-     * @param GameMove $gameMove
-     * @throws \DomainException
-     */
-    private function addGameMove(GameMove $gameMove)
+    private function addGameMove(GameMove $gameMove): void
     {
         $this->assertValidNewGameMove($gameMove);
 
         $this->moves->add($gameMove);
     }
 
-    /**
-     * @param GameMove $lastGameMove
-     */
-    private function resolveNewGameState(GameMove $lastGameMove)
+    private function resolveNewGameState(GameMove $lastGameMove): void
     {
         $winningGameMoves = (new GameMoveResolver())->getWinningGameMoves($lastGameMove);
 
@@ -303,11 +248,7 @@ class Game implements \JsonSerializable
         }
     }
 
-    /**
-     * @param GameMove $gameMove
-     * @throws \DomainException
-     */
-    private function assertValidNewGameMove(GameMove $gameMove)
+    private function assertValidNewGameMove(GameMove $gameMove): void
     {
         if ($this->isTerminated() || $this->moves->count() === $this->getMaxNumberOfTurns()) {
             throw new \DomainException(
@@ -325,19 +266,15 @@ class Game implements \JsonSerializable
         }
 
         // Menossa oleva peli eli pitää varmistaa, että pelilauta on siirron kohdalla tyhjä & pelaaja on oikea
-        if ($this->getMoveInPosition($gameMove->getX(), $gameMove->getY())) {
+        [$x, $y] = $gameMove->getPosition();
+        if ($this->getMoveInPosition($x, $y)) {
             throw new \DomainException(
                 __CLASS__ . ": has already move in position"
             );
         }
     }
 
-    /**
-     * @param int $moveId
-     * @return GameMove
-     * @throws \DomainException
-     */
-    private function getUndoableMove($moveId)
+    private function getUndoableMove(int $moveId): ?GameMove
     {
         $throwException = function ($message) {
             throw new \DomainException(

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: tuomas
@@ -29,38 +29,22 @@ class BoardPosition
      */
     public $y;
 
-    /**
-     * BoardPosition constructor.
-     * @param int $x
-     * @param int $y
-     */
-    public function __construct($x, $y)
+    public function __construct(int $x, int $y)
     {
         $this->x = $x;
         $this->y = $y;
     }
 
-    /**
-     * @param GameMove $gameMove
-     * @param BoardDirection $direction
-     * @return BoardPosition
-     */
-    public static function advanceOneStep(GameMove $gameMove, BoardDirection $direction)
+    public static function advanceOneStep(GameMove $gameMove, BoardDirection $direction): BoardPosition
     {
         $newCoordinates = self::getCoordinatesInDirection($gameMove, $direction);
 
         return new self(...$newCoordinates);
     }
 
-    /**
-     * @param GameMove $gameMove
-     * @param BoardDirection $direction
-     * @return int[]
-     */
-    private static function getCoordinatesInDirection(GameMove $gameMove, BoardDirection $direction)
+    private static function getCoordinatesInDirection(GameMove $gameMove, BoardDirection $direction): array
     {
-        $x = $gameMove->getX();
-        $y = $gameMove->getY();
+        [$x, $y] = $gameMove->getPosition();
 
         switch ($direction->getDirectionName()) {
             case BoardDirection::DIRECTION_NORTH:

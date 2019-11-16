@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: tuomas
@@ -45,56 +45,33 @@ class Player implements \JsonSerializable
      */
     private $game;
 
-    /**
-     * Player constructor.
-     * @param Game $game
-     * @param int $color
-     */
-    private function __construct(Game $game, $color)
+    private function __construct(Game $game, int $color)
     {
         $this->game = $game;
         $this->color = $color;
     }
 
-    /**
-     * @param Game $game
-     * @return Player
-     */
-    public static function createBlackPlayer(Game $game)
+    public static function createBlackPlayer(Game $game): Player
     {
         return new self($game, self::COLOR_BLACK);
     }
 
-    /**
-     * @param Game $game
-     * @return Player
-     */
-    public static function createWhitePlayer(Game $game)
+    public static function createWhitePlayer(Game $game): Player
     {
         return new self($game, self::COLOR_WHITE);
     }
 
-    /**
-     * @return int|null
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * @param $id
-     * @return bool
-     */
-    public function matchesId($id)
+    public function matchesId(int $id): bool
     {
         return $this->id === $id;
     }
 
-    /**
-     * @return array
-     */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return [
             'id'    => $this->id,

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: tuomas
@@ -93,15 +93,7 @@ class GameMove implements \JsonSerializable
      */
     private $dateCreated;
 
-    /**
-     * GameMove constructor.
-     * @param Game $game
-     * @param Player $player
-     * @param int $x
-     * @param int $y
-     * @throws \InvalidArgumentException, \LogicException
-     */
-    public function __construct(Game $game, Player $player, $x, $y)
+    public function __construct(Game $game, Player $player, int $x, int $y)
     {
         $this->validateCoordinateValues($game, $x, $y);
 
@@ -114,109 +106,58 @@ class GameMove implements \JsonSerializable
         $this->dateCreated = new \DateTime();
     }
 
-    /**
-     * @param int $x
-     * @param int $y
-     * @return bool
-     */
-    public function isInPosition($x, $y)
+    public function isInPosition(int $x, int $y): bool
     {
         return $this->x === $x && $this->y === $y;
     }
 
-    /**
-     * @param int $id
-     * @return bool
-     */
-    public function matchesId($id)
+    public function matchesId(int $id): bool
     {
         return $this->id === $id;
     }
 
-    /**
-     * TRUE jos $gameMove on saman pelaajan siirto
-     *
-     * @param Player $player
-     * @return bool
-     */
-    public function isByPlayer(Player $player)
+    public function isByPlayer(Player $player): bool
     {
         return $this->player->matchesId($player->getId());
     }
 
-    /**
-     * @return Game
-     */
-    public function getGame()
+    public function getGame(): Game
     {
         return $this->game;
     }
 
-    /**
-     * @return Player
-     */
-    public function getPlayer()
+    public function getPlayer(): Player
     {
         return $this->player;
     }
 
-    /**
-     * @return int|null
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * @return int
-     */
-    public function getX()
+    public function getPosition(): array
     {
-        return $this->x;
+        return [$this->x, $this->y];
     }
 
-    /**
-     * @return int
-     */
-    public function getY()
-    {
-        return $this->y;
-    }
-
-    /**
-     * Liputtaa siirron voittavaksi (näitä muodostuu siis 5 voittotilanteessa)
-     */
-    public function flagAsWinningMove()
+    public function flagAsWinningMove(): void
     {
         $this->isWinningMove = true;
     }
 
-    /**
-     * Palauttaa naapurisiirron ID:n tietystä suunnasta tai NULL jos naapuria ei ole
-     *
-     * @param BoardDirection $direction
-     * @return int|null
-     */
-    public function getNeighbourMoveIdInDirection(BoardDirection $direction)
-    {
-        return $this->neighbours[$direction->getDirectionName()] ?? null;
-    }
-
-    /**
-     * @param BoardDirection $direction
-     * @return Collection<GameMove>
-     */
-    public function getNeighboursInDirection(BoardDirection $direction)
+    public function getNeighbourMovesInDirection(BoardDirection $direction): Collection
     {
         return Collection::make(range(0, Game::WINNING_NUM_OF_MOVES - 1))
             ->reduce(
-                function (Collection $collection, $offset) use ($direction) {
+                function (Collection $acc, $offset) use ($direction) {
                     /** @var GameMove $gameMove */
-                    $gameMove = $offset > 0 ? $collection->last() : $this;
+                    $gameMove = $offset > 0 ? $acc->last() : $this;
                     $neighbourMoveId = $gameMove ? $gameMove->getNeighbourMoveIdInDirection($direction) : null;
 
-                    return $collection->push($this->game->getMoveById($neighbourMoveId));
+                    return $neighbourMoveId
+                        ? $acc->push($this->game->getMoveById($neighbourMoveId))
+                        : $acc;
                 },
                 Collection::make()
             )
@@ -224,10 +165,7 @@ class GameMove implements \JsonSerializable
             ->values();
     }
 
-    /**
-     * Linkittää naapurisiirrot keskenään (uutta siirtoa tehtäessä)
-     */
-    public function linkNeighbourMoves()
+    public function linkNeighbourMoves(): void
     {
         (new GameMoveResolver())->getSurroundingNeighbourMoves($this)
             ->each(
@@ -241,10 +179,7 @@ class GameMove implements \JsonSerializable
             );
     }
 
-    /**
-     * Poistaa naapurisiirtolinkityksen (siirtoa kumottaessa)
-     */
-    public function unlinkNeighbourMoves()
+    public function unlinkNeighbourMoves(): void
     {
         (new GameMoveResolver())->getSurroundingNeighbourMoves($this)
             ->each(
@@ -254,10 +189,7 @@ class GameMove implements \JsonSerializable
             );
     }
 
-    /**
-     * @return array
-     */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return [
             'id'            => $this->id,
@@ -269,33 +201,17 @@ class GameMove implements \JsonSerializable
         ];
     }
 
-    /**
-     * Asettaa parametrina annetun siirron tämän siirron naapuriksi.
-     *
-     * @param GameMove $gameMove
-     * @param BoardDirection $direction
-     */
-    private function setNeighbourInDirection(GameMove $gameMove, BoardDirection $direction)
+    private function setNeighbourInDirection(GameMove $gameMove, BoardDirection $direction): void
     {
         $this->neighbours[$direction->getDirectionName()] = $gameMove->getId();
     }
 
-    /**
-     * Poistaa parametrina annetussa suunnassa olevan siirron tämän siirron naapureista
-     *
-     * @param BoardDirection $direction
-     */
-    private function resetNeighbourInDirection(BoardDirection $direction)
+    private function resetNeighbourInDirection(BoardDirection $direction): void
     {
         unset($this->neighbours[$direction->getDirectionName()]);
     }
 
-    /**
-     * @param Game $game
-     * @param $x
-     * @param $y
-     */
-    private function validateCoordinateValues(Game $game, $x, $y)
+    private function validateCoordinateValues(Game $game, int $x, int $y): void
     {
         $assertIsInt = function ($value) {
             if (! is_int($value)) {
@@ -316,5 +232,10 @@ class GameMove implements \JsonSerializable
         Collection::make([$x, $y])
             ->each($assertIsInt)
             ->each($assertIsWithinBoard);
+    }
+
+    private function getNeighbourMoveIdInDirection(BoardDirection $direction): ?int
+    {
+        return $this->neighbours[$direction->getDirectionName()] ?? null;
     }
 }

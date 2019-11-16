@@ -1,9 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Gomoku\Entity\Game;
-use App\Gomoku\Entity\GameMove;
 use App\Gomoku\Utils\GameHandler;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,46 +17,27 @@ class GameMoveController extends AbstractController
      */
     private $gameHandler;
 
-    /**
-     * MovesController constructor.
-     * @param GameHandler $gameHandler
-     */
     public function __construct(GameHandler $gameHandler)
     {
         $this->gameHandler = $gameHandler;
     }
 
-    /**
-     * Siirron lisääminen peliin
-     *
-     * @param Request $request
-     * @param int $gameId
-     * @return Response
-     */
-    public function save(Request $request, $gameId)
+    public function save(Request $request, int $gameId): JsonResponse
     {
         ['x' => $x, 'y' => $y, 'player_id' => $playerId] = $this->getGameMoveParameters($request);
 
         return new JsonResponse(
-            $this->gameHandler->addGameMove($playerId, $x, $y, $gameId),
+            $this->gameHandler->addGameMove($gameId, $playerId, $x, $y),
             Response::HTTP_CREATED
         );
     }
 
-    /**
-     * Siirron poistaminen pelistä (sallii ainoastaan viimeisimmän siirron poistamisen
-     * mikäli poisto tehdään 5 sekunnin kuluttua sen tekemisestä)
-     *
-     * @param int $gameId
-     * @param int $moveId
-     * @return Response
-     */
-    public function delete($gameId, $moveId)
+    public function delete(int $gameId, int $moveId): JsonResponse
     {
         return new JsonResponse($this->gameHandler->undoGameMove($gameId, $moveId));
     }
 
-    private function getGameMoveParameters(Request $request)
+    private function getGameMoveParameters(Request $request): array
     {
         $gameMove = json_decode($request->getContent(), true);
 

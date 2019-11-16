@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: tuomas
@@ -8,8 +8,7 @@
 
 namespace App\Gomoku\Utils;
 
-
-use Illuminate\Support\Collection;
+use Tightenco\Collect\Support\Collection;
 
 class BoardDirection
 {
@@ -45,64 +44,39 @@ class BoardDirection
     ];
 
     /**
-     * @return Collection
-     */
-    public static function asOppositePairs()
-    {
-        return self::getDirections()
-            ->map(
-                function (BoardDirection $direction) {
-                    return Collection::make([
-                        $direction,
-                        $direction->toOppositeDirection()
-                    ]);
-                }
-            );
-    }
-
-    /**
-     * @return Collection
-     */
-    public static function getDirections()
-    {
-        return Collection::make(self::DIRECTIONS)
-            ->map(
-                function ($direction) {
-                    return new self($direction);
-                }
-            );
-    }
-
-    /**
      * @var string
      */
     private $directionName;
 
-    /**
-     * BoardDirection constructor.
-     * @param string $directionName
-     */
-    public function __construct($directionName)
+    private function __construct(string $directionName)
     {
-        if (! in_array($directionName, self::DIRECTIONS, true)) {
-            throw new \InvalidArgumentException("Unknown direction");
-        }
-
         $this->directionName = $directionName;
     }
 
-    /**
-     * @return BoardDirection
-     */
-    public function toOppositeDirection()
+    public static function asOppositePairs(): Collection
+    {
+        return self::getDirections()->map(
+            function (BoardDirection $direction) {
+                return [$direction, $direction->toOppositeDirection()];
+            }
+        );
+    }
+
+    public static function getDirections(): Collection
+    {
+        return Collection::make(self::DIRECTIONS)->map(
+            function ($direction) {
+                return new self($direction);
+            }
+        );
+    }
+
+    public function toOppositeDirection(): BoardDirection
     {
         return new self(self::DIRECTION_OPPOSITES[$this->directionName]);
     }
 
-    /**
-     * @return string
-     */
-    public function getDirectionName()
+    public function getDirectionName(): string
     {
         return $this->directionName;
     }
