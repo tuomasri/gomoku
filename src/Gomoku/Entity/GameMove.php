@@ -9,7 +9,7 @@
 namespace App\Gomoku\Entity;
 
 use App\Gomoku\Utils\BoardDirection;
-use App\Gomoku\Utils\GameMoveResolver;
+use App\Gomoku\Utils\BoardPosition;
 use Doctrine\ORM\Mapping as ORM;
 use Tightenco\Collect\Support\Collection;
 
@@ -171,28 +171,32 @@ class GameMove implements \JsonSerializable
 
     public function linkNeighbourMoves(): void
     {
-        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)->each(
-            function (array $gameMoveAndDirection) {
-                [$gameMove, $boardDirection] = $gameMoveAndDirection;
+        $this
+            ->getSurroundingNeighbourMoves()
+            ->each(
+                function (array $gameMoveAndDirection) {
+                    [$gameMove, $boardDirection] = $gameMoveAndDirection;
 
-                // Tästä siirrosta linkki naapurisiirtoon
-                $this->setNeighbourInDirection($gameMove, $boardDirection);
+                    // Tästä siirrosta linkki naapurisiirtoon
+                    $this->setNeighbourInDirection($gameMove, $boardDirection);
 
-                // Vastakkainen linkki myös naapurista tähän siirtoon
-                $gameMove->setNeighbourInDirection($this, $boardDirection->toOppositeDirection());
-            }
-        );
+                    // Vastakkainen linkki myös naapurista tähän siirtoon
+                    $gameMove->setNeighbourInDirection($this, $boardDirection->toOppositeDirection());
+                }
+            );
     }
 
     public function unlinkNeighbourMoves(): void
     {
-        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)->each(
-            function (array $gameMoveAndDirection) {
-                [$gameMove, $boardDirection] = $gameMoveAndDirection;
+        $this
+            ->getSurroundingNeighbourMoves()
+            ->each(
+                function (array $gameMoveAndDirection) {
+                    [$gameMove, $boardDirection] = $gameMoveAndDirection;
 
-                $gameMove->resetNeighbourInDirection($boardDirection->toOppositeDirection());
-            }
-        );
+                    $gameMove->resetNeighbourInDirection($boardDirection->toOppositeDirection());
+                }
+            );
     }
 
     public function jsonSerialize(): array
@@ -243,5 +247,23 @@ class GameMove implements \JsonSerializable
     private function getNeighbourMoveIdInDirection(BoardDirection $direction): ?int
     {
         return $this->neighbours[$direction->getDirectionName()] ?? null;
+    }
+
+    private function getSurroundingNeighbourMoves(): Collection
+    {
+        return Collection::make(BoardDirection::getDirections())->reduce(
+            function (Collection $acc, BoardDirection $direction) {
+                $newPosition = BoardPosition::advanceOneStep($this, $direction);
+
+                $neighbourMove = $this
+                    ->getGame()
+                    ->getMoveInPosition($newPosition->x, $newPosition->y, $this->getPlayer());
+
+                return $neighbourMove
+                    ? $acc->push([$neighbourMove, $direction])
+                    : $acc;
+            },
+            new Collection()
+        );
     }
 }

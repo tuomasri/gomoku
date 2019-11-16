@@ -8,7 +8,7 @@
 
 namespace App\Gomoku\Entity;
 
-use App\Gomoku\Utils\GameMoveResolver;
+use App\Gomoku\Utils\BoardDirection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Tightenco\Collect\Support\Collection;
@@ -240,7 +240,7 @@ class Game implements \JsonSerializable
 
     private function resolveNewGameState(GameMove $lastGameMove): void
     {
-        $winningGameMoves = (new GameMoveResolver())->getWinningGameMoves($lastGameMove);
+        $winningGameMoves = $this->resolveWinningMoves($lastGameMove);
 
         $this->isTerminated =
             ! $winningGameMoves->isEmpty() ||  // Voitto
@@ -280,5 +280,40 @@ class Game implements \JsonSerializable
                 __CLASS__ . ": has already move in position"
             );
         }
+    }
+
+    private function resolveWinningMoves(GameMove $newestGameMove): Collection
+    {
+        return BoardDirection::asOppositePairs()->reduce(
+            function (Collection $acc, array $directionPairs) use ($newestGameMove) {
+                // Voittosiirtojen sarja on jo löytynyt
+                if ($acc->count() >= self::WINNING_NUM_OF_MOVES) {
+                    return $acc;
+                }
+
+                [$direction, $oppositeDirection] = $directionPairs;
+
+                /**
+                 * Tiedetään, että voitto on tapahtunut jos siirrosta kumpaankin vastakkaiseen
+                 * suuntaan lähdettäessä löydetään siirrolle vähintään 4 naapurisiirtoa
+                 */
+                $gameMovesInDirection = $newestGameMove->getNeighbourMovesInDirection($direction);
+                $gameMovesInOppositeDirection = $newestGameMove->getNeighbourMovesInDirection($oppositeDirection);
+
+                return Collection::make()
+                    ->merge($gameMovesInDirection)
+                    ->merge($gameMovesInOppositeDirection)
+                    ->push($newestGameMove)
+                    ->take(self::WINNING_NUM_OF_MOVES)
+                    ->pipe(
+                        function (Collection $moves) {
+                            return $moves->count() >= self::WINNING_NUM_OF_MOVES
+                                ? $moves
+                                : Collection::make();
+                        }
+                    );
+            },
+            Collection::make()
+        );
     }
 }
