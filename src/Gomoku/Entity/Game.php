@@ -175,20 +175,20 @@ class Game implements \JsonSerializable
 
     /**
      * @param GameMove $gameMove
-     * @param \Closure $flushCallback
+     * @return \Generator
      */
-    public function handleGameMoveAdded(GameMove $gameMove, \Closure $flushCallback)
+    public function handleNewGameMove(GameMove $gameMove)
     {
         // Siirron validointi & tallennus
         $this->addGameMove($gameMove);
 
-        $flushCallback();
+        yield true;
 
         // Lisätyn siirron naapurien ja mahd. voittajan resolvointi
         $gameMove->linkNeighbourMoves();
         $this->resolveNewGameState($gameMove);
 
-        $flushCallback();
+        yield true;
     }
 
     /**
@@ -277,7 +277,7 @@ class Game implements \JsonSerializable
      */
     private function addGameMove(GameMove $gameMove)
     {
-        $this->validateAddMove($gameMove);
+        $this->assertValidNewGameMove($gameMove);
 
         $this->moves->add($gameMove);
     }
@@ -307,7 +307,7 @@ class Game implements \JsonSerializable
      * @param GameMove $gameMove
      * @throws \DomainException
      */
-    private function validateAddMove(GameMove $gameMove)
+    private function assertValidNewGameMove(GameMove $gameMove)
     {
         if ($this->isTerminated() || $this->moves->count() === $this->getMaxNumberOfTurns()) {
             throw new \DomainException(

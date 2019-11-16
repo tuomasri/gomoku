@@ -6,9 +6,7 @@ use App\Gomoku\Entity\Game;
 use App\Gomoku\Entity\GameMove;
 use App\Repository\GameRepository;
 use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\NoResultException;
-use Symfony\Component\HttpFoundation\Request;
 
 class GameHandler
 {
@@ -66,13 +64,12 @@ class GameHandler
          * Toimii näinkin, mutta voisi olla parempi linkata naapurit erillisten kenttien kautta.
          */
         $this->objectManager->transactional(
-            function (EntityManager $entityManager) use ($game, $gameMove) {
-                $game->handleGameMoveAdded(
-                    $gameMove,
-                    function () use ($entityManager) {
-                        $entityManager->flush();
-                    }
-                );
+            function (ObjectManager $objectManager) use ($game, $gameMove) {
+                $iterator = $game->handleNewGameMove($gameMove);
+
+                foreach ($iterator as $_) {
+                    $objectManager->flush();
+                }
             }
         );
 
@@ -111,6 +108,4 @@ class GameHandler
 
         return $repository->findGameOrFail($gameId);
     }
-
-
 }
