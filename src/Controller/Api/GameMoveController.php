@@ -2,7 +2,10 @@
 
 namespace App\Controller\Api;
 
-use App\Gomoku\Utils\GameHandler;
+use App\Gomoku\Entity\Game;
+use App\Gomoku\Entity\GameMove;
+use App\Repository\GameRepository;
+use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,28 +16,52 @@ use Tightenco\Collect\Support\Collection;
 class GameMoveController extends AbstractController
 {
     /**
-     * @var GameHandler
+     * @var ObjectManager
      */
-    private $gameHandler;
+    private $objectManager;
 
-    public function __construct(GameHandler $gameHandler)
+    public function __construct(ObjectManager $objectManager)
     {
-        $this->gameHandler = $gameHandler;
+        $this->objectManager = $objectManager;
     }
 
     public function save(Request $request, int $gameId): JsonResponse
     {
         ['x' => $x, 'y' => $y, 'player_id' => $playerId] = $this->getGameMoveParameters($request);
 
-        return new JsonResponse(
-            $this->gameHandler->addGameMove($gameId, $playerId, $x, $y),
-            Response::HTTP_CREATED
+        $game = $this->getGame($gameId);
+
+        $gameMove = new GameMove($game, $game->getPlayerById($playerId), $x, $y);
+
+        /**
+         * Siirtojen hanskaaminen ei oo maailman nätein ratkaisu mutta toimii:
+         * koska naapurit linkataan json-muotoiseen taulukkoon, pitää naapurisiirron ID olla
+         * tiedossa ennen linkkaamista (jonka takia tallennus joudutaan tekemään kahdessa vaiheessa).
+         * Toimii näinkin, mutta voisi olla parempi linkata naapurit erillisten kenttien kautta.
+         */
+        $this->objectManager->transactional(
+            function (ObjectManager $objectManager) use ($game, $gameMove) {
+                $iterator = $game->handleNewGameMove($gameMove);
+
+                foreach ($iterator as $_) {
+                    $objectManager->flush();
+                }
+            }
         );
+
+        return new JsonResponse($game, Response::HTTP_CREATED);
     }
 
     public function deleteLatest(int $gameId)
     {
-        return new JsonResponse($this->gameHandler->undoLatestMove($gameId));
+        $game = $this->getGame($gameId);
+        $move = $game->undoLatestGameMove();
+
+        $this->objectManager->remove($move);
+
+        $this->objectManager->flush();
+
+        return new JsonResponse($game);
     }
 
     private function getGameMoveParameters(Request $request): array
@@ -62,5 +89,13 @@ class GameMoveController extends AbstractController
             ->each($assertFunction)
             ->mapWithKeys($mapFunction)
             ->all();
+    }
+
+    private function getGame(int $gameId): Game
+    {
+        /** @var GameRepository $repository */
+        $repository = $this->objectManager->getRepository('Gomoku:Game');
+
+        return $repository->findGameOrFail($gameId);
     }
 }

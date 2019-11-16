@@ -2,7 +2,8 @@
 
 namespace App\Controller\Api;
 
-use App\Gomoku\Utils\GameHandler;
+use App\Gomoku\Entity\Game;
+use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -10,13 +11,13 @@ use Symfony\Component\HttpFoundation\Request;
 class GameController extends AbstractController
 {
     /**
-     * @var GameHandler
+     * @var ObjectManager
      */
-    private $gameHandler;
+    private $objectManager;
 
-    public function __construct(GameHandler $gameHandler)
+    public function __construct(ObjectManager $objectManager)
     {
-        $this->gameHandler = $gameHandler;
+        $this->objectManager = $objectManager;
     }
 
     public function save(Request $request): JsonResponse
@@ -25,6 +26,12 @@ class GameController extends AbstractController
 
         $boardSize = $parameters['boardSize'] ?? null;
 
-        return new JsonResponse($this->gameHandler->handleGameStart($boardSize), 201);
+        $game = Game::initializeGame($boardSize);
+
+        $this->objectManager->persist($game);
+
+        $this->objectManager->flush();
+
+        return new JsonResponse($game, 201);
     }
 }

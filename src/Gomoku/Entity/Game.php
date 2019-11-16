@@ -35,6 +35,8 @@ class Game implements \JsonSerializable
      */
     const MOVE_UNDO_THRESHOLD = 5;
 
+    private const DEFAULT_BOARD_SIZE = 15;
+
     /**
      * @ORM\Id
      * @ORM\Column(type="integer")
@@ -104,9 +106,9 @@ class Game implements \JsonSerializable
      * @param int $boardSize
      * @return Game
      */
-    public static function initializeGame(int $boardSize)
+    public static function initializeGame(int $boardSize = null)
     {
-        $instance = new self($boardSize);
+        $instance = new self($boardSize ?: self::DEFAULT_BOARD_SIZE);
 
         $blackPlayer = Player::createBlackPlayer($instance);
         $whitePlayer = Player::createWhitePlayer($instance);
