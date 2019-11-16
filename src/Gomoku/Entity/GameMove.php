@@ -10,7 +10,6 @@ namespace App\Gomoku\Entity;
 
 use App\Gomoku\Utils\BoardDirection;
 use App\Gomoku\Utils\GameMoveResolver;
-use App\Gomoku\Utils\NeighbourMoveDTO;
 use Doctrine\ORM\Mapping as ORM;
 use Tightenco\Collect\Support\Collection;
 
@@ -167,26 +166,28 @@ class GameMove implements \JsonSerializable
 
     public function linkNeighbourMoves(): void
     {
-        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)
-            ->each(
-                function (NeighbourMoveDTO $dto) {
-                    // Tästä siirrosta linkki naapurisiirtoon
-                    $this->setNeighbourInDirection($dto->gameMove, $dto->boardDirection);
+        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)->each(
+            function (array $gameMoveAndDirection) {
+                [$gameMove, $boardDirection] = $gameMoveAndDirection;
 
-                    // Vastakkainen linkki myös naapurista tähän siirtoon
-                    $dto->gameMove->setNeighbourInDirection($this, $dto->boardDirection->toOppositeDirection());
-                }
-            );
+                // Tästä siirrosta linkki naapurisiirtoon
+                $this->setNeighbourInDirection($gameMove, $boardDirection);
+
+                // Vastakkainen linkki myös naapurista tähän siirtoon
+                $gameMove->setNeighbourInDirection($this, $boardDirection->toOppositeDirection());
+            }
+        );
     }
 
     public function unlinkNeighbourMoves(): void
     {
-        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)
-            ->each(
-                function (NeighbourMoveDTO $dto) {
-                    $dto->gameMove->resetNeighbourInDirection($dto->boardDirection->toOppositeDirection());
-                }
-            );
+        (new GameMoveResolver())->getSurroundingNeighbourMoves($this)->each(
+            function (array $gameMoveAndDirection) {
+                [$gameMove, $boardDirection] = $gameMoveAndDirection;
+
+                $gameMove->resetNeighbourInDirection($boardDirection->toOppositeDirection());
+            }
+        );
     }
 
     public function jsonSerialize(): array

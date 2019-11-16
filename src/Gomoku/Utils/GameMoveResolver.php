@@ -16,25 +16,24 @@ class GameMoveResolver
 {
     public function getSurroundingNeighbourMoves(GameMove $latestGameMove): Collection
     {
-        return Collection::make(BoardDirection::getDirections())
-            ->reduce(
-                function (Collection $neighbourMoves, BoardDirection $direction) use ($latestGameMove) {
-                    $newPosition = BoardPosition::advanceOneStep($latestGameMove, $direction);
+        return Collection::make(BoardDirection::getDirections())->reduce(
+            function (Collection $neighbourMoves, BoardDirection $direction) use ($latestGameMove) {
+                $newPosition = BoardPosition::advanceOneStep($latestGameMove, $direction);
 
-                    $neighbourMove = $latestGameMove
-                        ->getGame()
-                        ->getMoveInPosition(
-                            $newPosition->x,
-                            $newPosition->y,
-                            $latestGameMove->getPlayer()
-                        );
+                $neighbourMove = $latestGameMove
+                    ->getGame()
+                    ->getMoveInPosition(
+                        $newPosition->x,
+                        $newPosition->y,
+                        $latestGameMove->getPlayer()
+                    );
 
-                    return $neighbourMove
-                        ? $neighbourMoves->push(new NeighbourMoveDTO($neighbourMove, $direction))
-                        : $neighbourMoves;
-                },
-                new Collection()
-            );
+                return $neighbourMove
+                    ? $neighbourMoves->push([$neighbourMove, $direction])
+                    : $neighbourMoves;
+            },
+            new Collection()
+        );
     }
 
     public function getWinningGameMoves(GameMove $newestGameMove): Collection
