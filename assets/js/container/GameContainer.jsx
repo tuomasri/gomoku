@@ -4,7 +4,7 @@ import React from 'react';
 import Routing from '../../utils/Routing';
 import NewGame from '../presentation/NewGame';
 import GameBoard from '../presentation/GameBoard';
-import { GAME_CONSTANTS, isTerminatedGame, isStartedGame } from '../../utils/Constants';
+import { GAME_CONSTANTS } from '../../utils/Constants';
 
 class GameContainer extends React.Component
 {
@@ -20,10 +20,12 @@ class GameContainer extends React.Component
 
     getNextPlayer()
     {
+        const moves = _.get(this.state.game, 'moves', []);
         const players = _.get(this.state.game, 'players', []);
         const lastMove = _.last(_.get(this.state.game, 'moves', {}));
+        const isEmptyOfMoves = moves.length === 0;
 
-        return isStartedGame(this.state.game) // Uusi peli -> musta aloittaa
+        return isEmptyOfMoves // Uusi peli -> musta aloittaa
             ? _.find(players, player => player.color === GAME_CONSTANTS.PLAYER_COLOR_BLACK)
             : _.find(players, player => lastMove.playerId !== player.id);
     }
@@ -57,19 +59,15 @@ class GameContainer extends React.Component
             });
     }
 
-    undoMove(x, y)
+    undoLatestMove()
     {
         const latestMove = _.last(_.get(this.state.game, 'moves', {}));
-
-        if (! (latestMove.x === x && latestMove.y === y)) {
-            throw new Error("Move is not latest");
-        }
 
         this.setState({isLoading: true});
 
         axios
             .delete(
-                Routing.API.gameMove.delete(this.state.game.id, latestMove.id)
+                Routing.API.gameMove.deleteLatest(this.state.game.id)
             )
             .then(response => {
                 const game = response.data;
@@ -89,7 +87,7 @@ class GameContainer extends React.Component
                 key="gomoku-game-board"
                 game={this.state.game}
                 makeMove={(x, y) => this.makeMove(x, y)}
-                undoMove={(x, y) => this.undoMove(x, y)}
+                undoLatestMove={() => this.undoLatestMove()}
             />
         ];
     }

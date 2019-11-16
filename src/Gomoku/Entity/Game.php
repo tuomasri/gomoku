@@ -12,6 +12,7 @@ use App\Gomoku\Utils\GameMoveResolver;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Tightenco\Collect\Support\Collection;
+use Zend\EventManager\Exception\DomainException;
 
 /**
  * Pelin tietomalli
@@ -170,15 +171,20 @@ class Game implements \JsonSerializable
         yield true;
     }
 
-    public function undoGameMove(int $moveId): GameMove
+    public function undoLatestGameMove(): GameMove
     {
-        $gameMove = $this->getUndoableMove($moveId);
+        /** @var GameMove $lastMove */
+        $lastMove = $this->moves->last();
 
-        $gameMove->unlinkNeighbourMoves();
+        if ($lastMove->getDateCreated()->diff(new \DateTime())->s > self::MOVE_UNDO_THRESHOLD) {
+            throw new DomainException(__CLASS__ . ": move is not within undo threshold");
+        }
 
-        $this->moves->removeElement($gameMove);
+        $lastMove->unlinkNeighbourMoves();
 
-        return $gameMove;
+        $this->moves->removeElement($lastMove);
+
+        return $lastMove;
     }
 
     public function getMoveById(int $moveId): ?GameMove
@@ -272,26 +278,5 @@ class Game implements \JsonSerializable
                 __CLASS__ . ": has already move in position"
             );
         }
-    }
-
-    private function getUndoableMove(int $moveId): ?GameMove
-    {
-        $throwException = function ($message) {
-            throw new \DomainException(
-                __CLASS__ . ": move is not undoable (" . $message . ")"
-            );
-        };
-
-        $lastMove = $this->moves->last();
-
-        if (! ($lastMove && $lastMove->hasId($moveId))) {
-            $throwException("only latest move is undoable");
-        }
-
-        if ($lastMove->getDateCreated()->diff(new \DateTime())->s > self::MOVE_UNDO_THRESHOLD) {
-            $throwException("move is not within undo threshold");
-        }
-
-        return $lastMove;
     }
 }

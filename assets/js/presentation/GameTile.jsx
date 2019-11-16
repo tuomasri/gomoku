@@ -60,7 +60,7 @@ class GameTile extends React.Component
             : (<button
                     className={gametileClasses}
                     onClick={() => this.isMoveUndoable()
-                        ? this.props.undoMove(this.props.x, this.props.y)
+                        ? this.props.undoLatestMove()
                         : alert("Siirtoa ei voi enää perua")}
                 >
                 </button>
@@ -77,7 +77,7 @@ GameTile.propTypes = {
     x: PropTypes.number.isRequired,
     y: PropTypes.number.isRequired,
     makeMove: PropTypes.func.isRequired,
-    undoMove: PropTypes.func.isRequired,
+    undoLatestMove: PropTypes.func.isRequired,
     isLatestMove: PropTypes.bool.isRequired,
     isTerminatedGame: PropTypes.bool.isRequired,
     move: MOVE_SHAPE,

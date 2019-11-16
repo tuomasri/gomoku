@@ -8,7 +8,7 @@ const joinRouteParts = (...args) => _.reduce(
 
 const ROUTE_API_PREFIX  = 'api';
 const ROUTE_GAME        = 'game';
-const ROUTE_GAME_MOVE   = 'moves';
+const ROUTE_GAME_MOVES  = 'moves';
 
 const Routing = {
     API: {
@@ -20,14 +20,14 @@ const Routing = {
                 ROUTE_API_PREFIX,
                 ROUTE_GAME,
                 gameId,
-                ROUTE_GAME_MOVE
+                ROUTE_GAME_MOVES
             ),
-            delete: (gameId, moveId) => joinRouteParts(
+            deleteLatest: (gameId) => joinRouteParts(
                 ROUTE_API_PREFIX,
                 ROUTE_GAME,
                 gameId,
-                ROUTE_GAME_MOVE,
-                moveId
+                ROUTE_GAME_MOVES,
+                'latest'
             )
         }
     },

@@ -128,9 +128,6 @@ class GameTest extends WebTestCase
         $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $conflictingMove->getStatusCode());
     }
 
-    /**
-     * Testi voittamiselle (musta pelaaja voittaa pystylinjalla)
-     */
     public function testVerticalWin()
     {
         $game = json_decode($this->createGame()->getContent(), true);
@@ -224,9 +221,6 @@ class GameTest extends WebTestCase
         $this->assertEquals(true, $game['isTerminated']);
     }
 
-    /**
-     * Testi voittamiselle (musta pelaaja voittaa yhdistämällä 2 + 2 siirtoa)
-     */
     public function testMergeWin()
     {
         $game = json_decode($this->createGame()->getContent(), true);
@@ -307,6 +301,61 @@ class GameTest extends WebTestCase
         $this->assertEquals($winner, null);
 
         $this->assertEquals(true, $game['isTerminated']);
+    }
+
+    public function testValidUndoMove()
+    {
+        $game = json_decode($this->createGame()->getContent(), true);
+
+        $gameId = $game['id'];
+        $blackPlayerId = $game['players'][0]['id'];
+        $whitePlayerId = $game['players'][1]['id'];
+
+        $this->createGameMove($game['id'], $blackPlayerId, 0, 0);
+        $this->createGameMove($game['id'], $whitePlayerId, 0, 1);
+
+        $route = sprintf("/api/game/%s/moves/latest", $gameId);
+
+        $client = static::createClient();
+        $client->catchExceptions(false);
+        $client->request('DELETE', $route);
+
+        $response = $client->getResponse();
+        $game = json_decode($response->getContent(), true);
+        $moves = $game['moves'] ?? [];
+        $lastMove = $moves[0];
+
+        $this->assertCount(1, $moves);
+
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+
+        $this->assertEquals(0, $lastMove['x']);
+        $this->assertEquals(0, $lastMove['y']);
+    }
+
+    public function testInvalidUndoMove()
+    {
+        $game = json_decode($this->createGame()->getContent(), true);
+
+        $gameId = $game['id'];
+        $blackPlayerId = $game['players'][0]['id'];
+
+        $this->createGameMove($game['id'], $blackPlayerId, 0, 0);
+
+        sleep(6);
+
+        $this->expectException(\DomainException::class);
+
+        $route = sprintf("/api/game/%s/moves/latest", $gameId);
+
+        $client = static::createClient();
+        $client->catchExceptions(false);
+
+        $client->request('DELETE', $route);
+
+        $response = $client->getResponse();
+
+        $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
     }
 
     /**

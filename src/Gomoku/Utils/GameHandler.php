@@ -61,10 +61,10 @@ class GameHandler
         return $game;
     }
 
-    public function undoGameMove(int $gameId, int $moveId): Game
+    public function undoLatestMove(int $gameId): Game
     {
         $game = $this->getGame($gameId);
-        $move = $game->undoGameMove((int) $moveId);
+        $move = $game->undoLatestGameMove();
 
         $this->objectManager->remove($move);
 

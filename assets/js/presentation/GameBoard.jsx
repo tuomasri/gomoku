@@ -2,7 +2,7 @@ import _ from 'lodash';
 import React from 'react';
 import PropTypes from 'prop-types';
 import GameTile from './GameTile';
-import { GAME_SHAPE, GAME_CONSTANTS, isTerminatedGame } from '../../utils/Constants';
+import { GAME_SHAPE, GAME_CONSTANTS } from '../../utils/Constants';
 
 class GameBoard extends React.Component
 {
@@ -49,9 +49,9 @@ class GameBoard extends React.Component
                                 move={gameMoveInTile}
                                 players={this.props.game.players}
                                 makeMove={(x, y) => this.props.makeMove(x, y)}
-                                undoMove={(x, y) => this.props.undoMove(x, y)}
+                                undoLatestMove={() => this.props.undoLatestMove()}
                                 isLatestMove={isLatestMove}
-                                isTerminatedGame={isTerminatedGame(this.props.game)}
+                                isTerminatedGame={this.props.game.isTerminated}
                             />
                         );
                     });
@@ -76,7 +76,7 @@ class GameBoard extends React.Component
             return null;
         }
 
-        const classNames = isTerminatedGame(this.props.game)
+        const classNames = this.props.game.isTerminated
             ? "flex mb-4 my-4 mx-4 justify-center opacity-25"
             : "flex mb-4 my-4 mx-4 justify-center";
 
@@ -91,7 +91,7 @@ class GameBoard extends React.Component
 GameBoard.propTypes = {
     game: GAME_SHAPE,
     makeMove: PropTypes.func.isRequired,
-    undoMove: PropTypes.func.isRequired,
+    undoLatestMove: PropTypes.func.isRequired,
 };
 
 export default GameBoard;

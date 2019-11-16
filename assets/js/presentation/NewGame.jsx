@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { GAME_CONSTANTS, GAME_SHAPE, isTerminatedGame } from '../../utils/Constants';
+import { GAME_CONSTANTS, GAME_SHAPE } from '../../utils/Constants';
 import Modal from "./Modal";
 
 class NewGame extends React.Component
@@ -18,7 +18,7 @@ class NewGame extends React.Component
     {
         const confirmNewGameStart = (
             nextProps.game &&
-            isTerminatedGame(nextProps.game) &&
+            nextProps.game.isTerminated &&
             ! prevState.confirmNewGameStart
         );
 

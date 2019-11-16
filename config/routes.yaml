@@ -13,7 +13,7 @@ api_game_move_new:
   controller: App\Controller\Api\GameMoveController::save
   methods:    POST
 
-api_game_move_delete:
-  path:       /api/game/{gameId}/moves
-  controller: App\Controller\Api\GameMoveController::delete
+api_game_move_delete_latest:
+  path:       /api/game/{gameId}/moves/latest
+  controller: App\Controller\Api\GameMoveController::deleteLatest
   methods:    DELETE

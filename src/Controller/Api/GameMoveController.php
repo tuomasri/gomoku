@@ -32,9 +32,9 @@ class GameMoveController extends AbstractController
         );
     }
 
-    public function delete(int $gameId, int $moveId): JsonResponse
+    public function deleteLatest(int $gameId)
     {
-        return new JsonResponse($this->gameHandler->undoGameMove($gameId, $moveId));
+        return new JsonResponse($this->gameHandler->undoLatestMove($gameId));
     }
 
     private function getGameMoveParameters(Request $request): array

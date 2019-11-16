@@ -135,6 +135,11 @@ class GameMove implements \JsonSerializable
         return $this->id;
     }
 
+    public function getDateCreated(): \DateTime
+    {
+        return clone $this->dateCreated;
+    }
+
     public function getPosition(): array
     {
         return [$this->x, $this->y];
