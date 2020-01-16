@@ -6,10 +6,10 @@
  * Time: 18:14
  */
 
-namespace App\Gomoku\Entity;
+namespace App\Entity;
 
-use App\Gomoku\Utils\BoardDirection;
-use App\Gomoku\Utils\BoardPosition;
+use App\Utils\BoardDirection;
+use App\Utils\BoardPosition;
 use Doctrine\ORM\Mapping as ORM;
 use Tightenco\Collect\Support\Collection;
 

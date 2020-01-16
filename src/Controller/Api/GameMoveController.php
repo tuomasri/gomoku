@@ -2,8 +2,8 @@
 
 namespace App\Controller\Api;
 
-use App\Gomoku\Entity\Game;
-use App\Gomoku\Entity\GameMove;
+use App\Entity\Game;
+use App\Entity\GameMove;
 use App\Repository\GameRepository;
 use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

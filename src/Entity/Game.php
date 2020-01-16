@@ -6,9 +6,9 @@
  * Time: 17:10
  */
 
-namespace App\Gomoku\Entity;
+namespace App\Entity;
 
-use App\Gomoku\Utils\BoardDirection;
+use App\Utils\BoardDirection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Tightenco\Collect\Support\Collection;

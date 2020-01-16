@@ -2,7 +2,7 @@
 
 namespace App\Controller\Api;
 
-use App\Gomoku\Entity\Game;
+use App\Entity\Game;
 use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;

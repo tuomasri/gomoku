@@ -6,7 +6,7 @@
  * Time: 15:15
  */
 
-namespace App\Gomoku\Utils;
+namespace App\Utils;
 
 use Tightenco\Collect\Support\Collection;
 

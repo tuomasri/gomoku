@@ -6,7 +6,7 @@
  * Time: 18:05
  */
 
-namespace App\Gomoku\Entity;
+namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

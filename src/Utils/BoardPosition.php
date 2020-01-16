@@ -6,10 +6,10 @@
  * Time: 18:40
  */
 
-namespace App\Gomoku\Utils;
+namespace App\Utils;
 
 
-use App\Gomoku\Entity\GameMove;
+use App\Entity\GameMove;
 
 /**
  * Helpperityylinen luokka pelitilanteen resolvointiin
